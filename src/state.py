@@ -8,8 +8,19 @@ class State:
         self.constraints_collected = []
         self.history = []
 
+
+    def log_current_state(self) -> None:
+        state_snapshot = {
+            'pc': self.pc,
+            'sym_stack': list(self.sym_stack),
+            'sym_locals': dict(self.sym_locals),
+            'constraints_collected': list(self.constraints_collected)
+        }
+        print("State Log:", state_snapshot)
+        return 
+    
     # state when the 2 branches are created 
-    def clone(self):
+    def clone(self) -> 'State':
         new_state = State()
         new_state.pc = self.pc
         new_state.sym_stack = list(self.sym_stack) # new copy because we don't want same memory
@@ -18,7 +29,7 @@ class State:
         new_state.history = list(self.history)
         return new_state
     
-    def step(self, program: list):
+    def step(self, program: list) -> tuple[str, 'State']:
         current_addr = program[self.pc]
         current_op = current_addr[0]
         arg = current_addr[1] if len(current_addr) > 1 else None
@@ -28,7 +39,6 @@ class State:
         match(current_op):
             case "NOP":
                 return ("continue", self)
-
             case "LOCAL_READ":
                 symbol = z3.BitVec(f"local_{arg}", 32)
                 self.sym_locals[arg] = symbol
@@ -44,5 +54,11 @@ class State:
                 self.sym_locals[arg] = value
                 return ('continue', self)
             
+            case "CONST_I32":
+                value = z3.BitVecVal(arg, 32)
+                if (isinstance(value, z3.BitVecNumRef) == False):
+                    raise Exception("CONST_I32 argument must be an integer")
+                self.sym_stack.append(value)
+                return ('continue', self)            
             case _:
                 raise Exception(f"Unknown instruction: {current_op}")
