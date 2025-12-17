@@ -2,9 +2,12 @@ from helpers.solve import solve_constraints
 from state import State
 
 program = [
-    ("LOCAL_READ", 0),
-    ("LOCAL_GET", 0),
-    ("CONST_I32", 10),
+    ("LOCAL_READ", 23),
+    ("LOCAL_READ", 42),
+    ("LOCAL_GET", 23),
+    ("LOCAL_GET", 42),
+    ("I32_EQ", 10),
+    ("BR_IF",)
 ]
 
 

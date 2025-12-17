@@ -25,7 +25,7 @@ All are BitVec(32) i32
 3. I32_MULT
 4. I32_AND
 5. I32_AND/OR/XOR
-6. I32_SHL/SHR
+6. I32_SHL/SHR // 
 
 ### Comparison
 1. I32_LT_S; bvslt(a, b)
