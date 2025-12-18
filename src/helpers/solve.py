@@ -13,3 +13,8 @@ def solve_constraints(constraints: list) -> z3.ModelRef | None:
     else:
         return None
     
+def is_sat(constraints):
+    solver = z3.Solver()
+    for c in constraints:
+        solver.add(c)
+    return solver.check() == z3.sat

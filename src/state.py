@@ -148,6 +148,18 @@ class State:
                 self.sym_stack.append(result)
                 return ('continue', self)
             
+
+            case "I32_LT_S":
+                val1 = self.sym_stack.pop()
+                val2 = self.sym_stack.pop()
+
+                if (not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef)):
+                    raise Exception("I32_LT_S operands must be symbolic BitVecs")
+
+                result = val2 < val1
+                self.sym_stack.append(result)
+                return ("continue", self)
+            
             case "BR_IF":
                 condition = self.sym_stack.pop()
 
@@ -161,10 +173,12 @@ class State:
                 true_state.constraints_collected.append(condition)
 
                 false_state.constraints_collected.append(z3.Not(condition))
-
                 print("Constraints collected so far:", true_state.constraints_collected + false_state.constraints_collected)
-                return ("continue", self)
-                return ('branch', (true_state, false_state))
+                return ('branch', (condition, arg))
 
+            case "HALT":
+                return ('halt', self)
+            case "FOUND":
+                return ('found', self)
             case _:
                 raise Exception(f"Unknown instruction: {current_op}")
