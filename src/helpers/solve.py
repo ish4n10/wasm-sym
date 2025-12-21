@@ -17,4 +17,12 @@ def is_sat(constraints):
     solver = z3.Solver()
     for c in constraints:
         solver.add(c)
-    return solver.check() == z3.sat
+
+    is_sat = solver.check() == z3.sat 
+    if (is_sat):
+        model = solver.model()
+        print("Satisfiable with model:")
+        for d in model.decls():
+            print(f"  {d.name()} = {model[d]}")
+
+    return is_sat
