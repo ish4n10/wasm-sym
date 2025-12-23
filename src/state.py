@@ -56,12 +56,11 @@ class State:
         match(current_op):
             case "nop":
                 return ("continue", self)
-            case "LOCAL_READ":
-                symbol = z3.BitVec(f"local_{arg}", 32)
-                self.sym_locals[arg] = symbol
-                return ('continue', self)
-            
             case "local.get":
+                # Automatically initialize local with symbolic value if it doesn't exist
+                if arg not in self.sym_locals:
+                    symbol = z3.BitVec(f"local_{arg}", 32)
+                    self.sym_locals[arg] = symbol
                 value = self.sym_locals[arg]
                 self.sym_stack.append(value)
                 return ('continue', self)
