@@ -54,176 +54,176 @@ class State:
         
 
         match(current_op):
-            case "NOP":
+            case "nop":
                 return ("continue", self)
             case "LOCAL_READ":
                 symbol = z3.BitVec(f"local_{arg}", 32)
                 self.sym_locals[arg] = symbol
                 return ('continue', self)
             
-            case "LOCAL_GET":
+            case "local.get":
                 value = self.sym_locals[arg]
                 self.sym_stack.append(value)
                 return ('continue', self)
             
-            case "LOCAL_SET":
+            case "local.set":
                 value = self.sym_stack.pop()
                 self.sym_locals[arg] = value
                 return ('continue', self)
             
-            case "CONST_I32":
+            case "i32.const":
                 value = z3.BitVecVal(arg, 32)
                 if (isinstance(value, z3.BitVecNumRef) == False):
-                    raise Exception("CONST_I32 argument must be an integer")
+                    raise Exception("i32.const argument must be an integer")
                 self.sym_stack.append(value)
                 return ('continue', self)
 
-            case "I32_ADD":
+            case "i32.add":
                 val1 = self.sym_stack.pop()
                 val2 = self.sym_stack.pop()
 
                 if (not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef)):
-                    raise Exception("I32_ADD operands must be symbolic BitVecs")
+                    raise Exception("i32.add operands must be symbolic BitVecs")
                 
                 result = val1 + val2
                 self.sym_stack.append(result)
                 return ('continue', self)
             
-            case "I32_SUB":
+            case "i32.sub":
                 val1 = self.sym_stack.pop()
                 val2 = self.sym_stack.pop()
 
                 if (not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef)):
-                    raise Exception("I32_SUB operands must be symbolic BitVecs")
+                    raise Exception("i32.sub operands must be symbolic BitVecs")
                 
                 result = val1 - val2
                 self.sym_stack.append(result)
                 return ('continue', self)
             
-            case "I32_MULT": 
+            case "i32.mul": 
                 val1 = self.sym_stack.pop()
                 val2 = self.sym_stack.pop()
 
                 if (not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef)):
-                    raise Exception("I32_MULT operands must be symbolic BitVecs")
+                    raise Exception("i32.mul operands must be symbolic BitVecs")
                 
                 result = val1 * val2
                 self.sym_stack.append(result)
                 return ('continue', self)
             
-            case "I32_XOR":
+            case "i32.xor":
                 val1 = self.sym_stack.pop()
                 val2 = self.sym_stack.pop()
 
                 if (not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef)):
-                    raise Exception("I32_XOR operands must be symbolic BitVecs")
+                    raise Exception("i32.xor operands must be symbolic BitVecs")
                 
                 result = val1 ^ val2
                 self.sym_stack.append(result)
                 return ('continue', self)
             
-            case "I32_OR":
+            case "i32.or":
                 val1 = self.sym_stack.pop()
                 val2 = self.sym_stack.pop()
 
                 if (not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef)):
-                    raise Exception("I32_OR operands must be symbolic BitVecs")
+                    raise Exception("i32.or operands must be symbolic BitVecs")
 
                 result = val1 | val2
                 self.sym_stack.append(result)
                 return ('continue', self)
             
-            case "I32_AND":
+            case "i32.and":
                 val1 = self.sym_stack.pop()
                 val2 = self.sym_stack.pop()
 
                 if (not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef)):
-                    raise Exception("I32_AND operands must be symbolic BitVecs")
+                    raise Exception("i32.and operands must be symbolic BitVecs")
 
                 result = val1 & val2
                 self.sym_stack.append(result)
                 return ('continue', self)
             
-            case "I32_SHL":
+            case "i32.shl":
                 val1 = self.sym_stack.pop()  # shift amount
                 val2 = self.sym_stack.pop()  # value to shift
 
                 if (not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef)):
-                    raise Exception("I32_SHL operands must be symbolic BitVecs")
+                    raise Exception("i32.shl operands must be symbolic BitVecs")
 
                 shift_amount = val1 & 0x1F
                 result = val2 << shift_amount
                 self.sym_stack.append(result)
                 return ('continue', self)
             
-            case "I32_SHR":
+            case "i32.shr_u":
                 val1 = self.sym_stack.pop()
                 val2 = self.sym_stack.pop() 
 
                 if (not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef)):
-                    raise Exception("I32_SHR operands must be symbolic BitVecs")
+                    raise Exception("i32.shr_u operands must be symbolic BitVecs")
 
                 shift_amount = val1 & 0x1F
                 result = val2 >> shift_amount
                 self.sym_stack.append(result)
                 return ('continue', self)
             
-            case "I32_EQZ":
+            case "i32.eqz":
                 val = self.sym_stack.pop()
 
                 if (not isinstance(val, z3.BitVecRef)):
-                    raise Exception("I32_EQZ operand must be a symbolic BitVec")
+                    raise Exception("i32.eqz operand must be a symbolic BitVec")
 
                 result = (val == 0)
                 self.sym_stack.append(result)
                 return ('continue', self)
             
-            case "I32_EQ":
+            case "i32.eq":
                 val1 = self.sym_stack.pop()
                 val2 = self.sym_stack.pop()
 
                 if (not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef)):
-                    raise Exception("I32_EQ operands must be symbolic BitVecs")
+                    raise Exception("i32.eq operands must be symbolic BitVecs")
 
                 result = (val1 == val2)
                 self.sym_stack.append(result)
                 return ('continue', self)
             
 
-            case "I32_LT_S":
+            case "i32.lt_s":
                 val1 = self.sym_stack.pop()
                 val2 = self.sym_stack.pop()
 
                 if (not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef)):
-                    raise Exception("I32_LT_S operands must be symbolic BitVecs")
+                    raise Exception("i32.lt_s operands must be symbolic BitVecs")
 
                 result = val2 < val1
                 self.sym_stack.append(result)
                 return ("continue", self)
             
-            case "I32_LT_u":
+            case "i32.lt_u":
                 val1 = self.sym_stack.pop()
                 val2 = self.sym_stack.pop()
 
                 if (not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef)):
-                    raise Exception("I32_LT_u operands must be symbolic BitVecs")
+                    raise Exception("i32.lt_u operands must be symbolic BitVecs")
 
             
                 result = val2 < val1
                 self.sym_stack.append(result)
                 return ("continue", self)
             
-            case "BR":
+            case "br":
                 if arg is None:
-                    raise Exception("BR requires a target address")
+                    raise Exception("br requires a target address")
                 self.pc = arg
                 return ("continue", self)
             
-            case "BR_IF":
+            case "br_if":
                 condition = self.sym_stack.pop()
 
                 if not isinstance(condition, z3.BoolRef):
-                    raise Exception("BR_IF condition must be a symbolic Bool")
+                    raise Exception("br_if condition must be a symbolic Bool")
 
                 true_state = self.clone()
                 false_state = self.clone()
@@ -235,22 +235,22 @@ class State:
                 print("Constraints collected so far:", true_state.constraints_collected + false_state.constraints_collected)
                 return ('branch', (condition, arg))
 
-            case "I32_LOAD":
+            case "i32.load":
                 addr = self.sym_stack.pop()
                 
                 if (not isinstance(addr, z3.BitVecRef)):
-                    raise Exception("I32_LOAD address must be a symbolic BitVec")
+                    raise Exception("i32.load address must be a symbolic BitVec")
                 
                 value = z3.Select(self.memory, addr)
                 self.sym_stack.append(value)
                 return ('continue', self)
             
-            case "I32_STORE":
+            case "i32.store":
                 value = self.sym_stack.pop()
                 addr = self.sym_stack.pop()
                 
                 if (not isinstance(addr, z3.BitVecRef) or not isinstance(value, z3.BitVecRef)):
-                    raise Exception("I32_STORE address and value must be symbolic BitVecs")
+                    raise Exception("i32.store address and value must be symbolic BitVecs")
                 
                 self.memory = z3.Store(self.memory, addr, value)
                 return ('continue', self)
@@ -258,16 +258,16 @@ class State:
             case "LABEL":
                 return ("continue", self)
             
-            case "CALL":
+            case "call":
                 if arg is None:
-                    raise Exception("CALL requires a function address")
+                    raise Exception("call requires a function address")
                 self.call_stack.append(self.pc)
                 self.pc = arg
                 return ("continue", self)
             
-            case "RETURN":
+            case "return":
                 if not self.call_stack:
-                    raise Exception("RETURN called but call stack is empty")
+                    raise Exception("return called but call stack is empty")
                 return_pc = self.call_stack.pop()
                 self.pc = return_pc
                 return ("continue", self)
