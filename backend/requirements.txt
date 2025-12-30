@@ -1,0 +1,5 @@
+z3-solver
+fastapi
+uvicorn[standard]
+pydantic
+

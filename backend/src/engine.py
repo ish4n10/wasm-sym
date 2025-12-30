@@ -124,6 +124,79 @@ class StateRecorder:
         
         lines.append("}")
         return "\n".join(lines)
+    
+    def to_json(self) -> dict:
+        """Export graph data as JSON for React Flow"""
+        import math
+        
+        nodes = []
+        edges = []
+        
+        # Calculate positions using a simple layout
+        node_ids = list(self.nodes.keys())
+        num_nodes = len(node_ids)
+        
+        for idx, state_id in enumerate(node_ids):
+            props = self.nodes[state_id]
+            node_type = "found" if props['found'] else ("dead" if props['dead'] else "exploring")
+            
+            # Simple grid layout
+            cols = math.ceil(math.sqrt(num_nodes))
+            row = idx // cols
+            col = idx % cols
+            x = col * 200 + 100
+            y = row * 150 + 100
+            
+            # Determine node type for React Flow
+            react_flow_type = "foundNode" if props['found'] else ("deadNode" if props['dead'] else "defaultNode")
+            
+            # Determine color
+            color = "#2ecc71" if props['found'] else ("#e74c3c" if props['dead'] else "#3498db")
+            
+            label = f"S{state_id}"
+            if props['found']:
+                label += " [FOUND]"
+            elif props['dead']:
+                label += " [DEAD]"
+            
+            nodes.append({
+                "id": str(state_id),
+                "type": react_flow_type,
+                "data": {
+                    "label": label,
+                    "stateType": node_type
+                },
+                "position": {"x": x, "y": y},
+                "style": {
+                    "background": color,
+                    "color": "#fff",
+                    "border": "2px solid #333",
+                    "borderRadius": "8px",
+                    "padding": "10px",
+                    "fontWeight": "bold"
+                }
+            })
+        
+        for parent_id, child_id, condition in self.edges:
+            cond_str = str(condition).replace('\n', ' ')
+            edges.append({
+                "id": f"{parent_id}-{child_id}",
+                "source": str(parent_id),
+                "target": str(child_id),
+                "label": cond_str,
+                "type": "smoothstep",
+                "style": {
+                    "stroke": "#95a5a6",
+                    "strokeWidth": 2
+                },
+                "labelStyle": {
+                    "fill": "#333",
+                    "fontSize": "10px",
+                    "fontWeight": "normal"
+                }
+            })
+        
+        return {"nodes": nodes, "edges": edges}
 
 
 def explore(program, max_steps=1000, find_pcs=None, avoid_pcs=None):
@@ -139,11 +212,11 @@ def explore(program, max_steps=1000, find_pcs=None, avoid_pcs=None):
 
         steps = 0
         while steps < max_steps:
-            if state.pc in avoid_pcs:
+            if avoid_pcs and state.pc in avoid_pcs:
                 recorder.mark_dead(state.state_id)
                 break
 
-            if state.pc in find_pcs:
+            if find_pcs and state.pc in find_pcs:
                 found.append(state)
                 recorder.mark_found(state.state_id)
                 print("FOUND at pc =", state.pc)
