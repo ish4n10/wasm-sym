@@ -8,7 +8,7 @@ from helpers.types import Program, StepResult
 
 
 @OpcodeRegistry.register("i32.eqz")
-def i32_eqz(state: State, arg: Any, program: Program) -> StepResult:
+def i32_eqz(state: State, arg: Any) -> StepResult:
     val = state.sym_stack.pop()
     if not isinstance(val, z3.BitVecRef):
         raise Exception("i32.eqz operand must be a symbolic BitVec")
@@ -17,7 +17,7 @@ def i32_eqz(state: State, arg: Any, program: Program) -> StepResult:
 
 
 @OpcodeRegistry.register("i32.eq")
-def i32_eq(state: State, arg: Any, program: Program) -> StepResult:
+def i32_eq(state: State, arg: Any) -> StepResult:
     val1 = state.sym_stack.pop()
     val2 = state.sym_stack.pop()
     if not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef):
@@ -27,7 +27,7 @@ def i32_eq(state: State, arg: Any, program: Program) -> StepResult:
 
 
 @OpcodeRegistry.register("i32.lt_s")
-def i32_lt_s(state: State, arg: Any, program: Program) -> StepResult:
+def i32_lt_s(state: State, arg: Any) -> StepResult:
     val1 = state.sym_stack.pop()
     val2 = state.sym_stack.pop()
     if not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef):
@@ -37,7 +37,7 @@ def i32_lt_s(state: State, arg: Any, program: Program) -> StepResult:
 
 
 @OpcodeRegistry.register("i32.lt_u")
-def i32_lt_u(state: State, arg: Any, program: Program) -> StepResult:
+def i32_lt_u(state: State, arg: Any) -> StepResult:
     val1 = state.sym_stack.pop()
     val2 = state.sym_stack.pop()
     if not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef):

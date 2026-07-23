@@ -8,7 +8,7 @@ from helpers.types import Program, StepResult
 
 
 @OpcodeRegistry.register("i32.add")
-def i32_add(state: State, arg: Any, program: Program) -> StepResult:
+def i32_add(state: State, arg: Any) -> StepResult:
     val1 = state.sym_stack.pop()
     val2 = state.sym_stack.pop()
     if not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef):
@@ -18,7 +18,7 @@ def i32_add(state: State, arg: Any, program: Program) -> StepResult:
 
 
 @OpcodeRegistry.register("i32.sub")
-def i32_sub(state: State, arg: Any, program: Program) -> StepResult:
+def i32_sub(state: State, arg: Any) -> StepResult:
     val1 = state.sym_stack.pop()
     val2 = state.sym_stack.pop()
     if not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef):
@@ -28,7 +28,7 @@ def i32_sub(state: State, arg: Any, program: Program) -> StepResult:
 
 
 @OpcodeRegistry.register("i32.mul")
-def i32_mul(state: State, arg: Any, program: Program) -> StepResult:
+def i32_mul(state: State, arg: Any) -> StepResult:
     val1 = state.sym_stack.pop()
     val2 = state.sym_stack.pop()
     if not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef):
@@ -38,7 +38,7 @@ def i32_mul(state: State, arg: Any, program: Program) -> StepResult:
 
 
 @OpcodeRegistry.register("i32.div_s")
-def i32_div_s(state: State, arg: Any, program: Program) -> StepResult:
+def i32_div_s(state: State, arg: Any) -> StepResult:
     divisor = state.sym_stack.pop()
     dividend = state.sym_stack.pop()
     if not isinstance(divisor, z3.BitVecRef) or not isinstance(dividend, z3.BitVecRef):
@@ -52,26 +52,22 @@ def i32_div_s(state: State, arg: Any, program: Program) -> StepResult:
         ),
     )
 
-    trap = state.clone()
-    trap.constraints_collected.append(bad)
-    solver = z3.Solver()
-    solver.add(trap.constraints_collected)
-    if solver.check() == z3.sat:
-        model = solver.model()
+    is_sat, model = state.check_trap(bad)
+    if is_sat:
         state.findings.append({
             "type": "i32.div_s",
             "pc": state.pc - 1,
             "model": model,
-            "constraints": list(trap.constraints_collected),
+            "constraints": list(state.constraints_collected) + [bad],
         })
 
-    state.constraints_collected.append(z3.Not(bad))
+    state.add_constraint(z3.Not(bad))
     state.sym_stack.append(dividend / divisor)
     return ("continue", state)
 
 
 @OpcodeRegistry.register("i32.rem_s")
-def i32_rem_s(state: State, arg: Any, program: Program) -> StepResult:
+def i32_rem_s(state: State, arg: Any) -> StepResult:
     divisor = state.sym_stack.pop()
     dividend = state.sym_stack.pop()
     if not isinstance(divisor, z3.BitVecRef) or not isinstance(dividend, z3.BitVecRef):
@@ -79,26 +75,22 @@ def i32_rem_s(state: State, arg: Any, program: Program) -> StepResult:
 
     bad = divisor == 0
 
-    trap = state.clone()
-    trap.constraints_collected.append(bad)
-    solver = z3.Solver()
-    solver.add(trap.constraints_collected)
-    if solver.check() == z3.sat:
-        model = solver.model()
+    is_sat, model = state.check_trap(bad)
+    if is_sat:
         state.findings.append({
             "type": "i32.rem_s",
             "pc": state.pc - 1,
             "model": model,
-            "constraints": list(trap.constraints_collected),
+            "constraints": list(state.constraints_collected) + [bad],
         })
 
-    state.constraints_collected.append(z3.Not(bad))
+    state.add_constraint(z3.Not(bad))
     state.sym_stack.append(z3.SRem(dividend, divisor))
     return ("continue", state)
 
 
 @OpcodeRegistry.register("i32.div_u")
-def i32_div_u(state: State, arg: Any, program: Program) -> StepResult:
+def i32_div_u(state: State, arg: Any) -> StepResult:
     divisor = state.sym_stack.pop()
     dividend = state.sym_stack.pop()
     if not isinstance(divisor, z3.BitVecRef) or not isinstance(dividend, z3.BitVecRef):
@@ -106,26 +98,22 @@ def i32_div_u(state: State, arg: Any, program: Program) -> StepResult:
 
     bad = divisor == 0
 
-    trap = state.clone()
-    trap.constraints_collected.append(bad)
-    solver = z3.Solver()
-    solver.add(trap.constraints_collected)
-    if solver.check() == z3.sat:
-        model = solver.model()
+    is_sat, model = state.check_trap(bad)
+    if is_sat:
         state.findings.append({
             "type": "i32.div_u",
             "pc": state.pc - 1,
             "model": model,
-            "constraints": list(trap.constraints_collected),
+            "constraints": list(state.constraints_collected) + [bad],
         })
 
-    state.constraints_collected.append(z3.Not(bad))
+    state.add_constraint(z3.Not(bad))
     state.sym_stack.append(z3.UDiv(dividend, divisor))
     return ("continue", state)
 
 
 @OpcodeRegistry.register("i32.rem_u")
-def i32_rem_u(state: State, arg: Any, program: Program) -> StepResult:
+def i32_rem_u(state: State, arg: Any) -> StepResult:
     divisor = state.sym_stack.pop()
     dividend = state.sym_stack.pop()
     if not isinstance(divisor, z3.BitVecRef) or not isinstance(dividend, z3.BitVecRef):
@@ -133,19 +121,15 @@ def i32_rem_u(state: State, arg: Any, program: Program) -> StepResult:
 
     bad = divisor == 0
 
-    trap = state.clone()
-    trap.constraints_collected.append(bad)
-    solver = z3.Solver()
-    solver.add(trap.constraints_collected)
-    if solver.check() == z3.sat:
-        model = solver.model()
+    is_sat, model = state.check_trap(bad)
+    if is_sat:
         state.findings.append({
             "type": "i32.rem_u",
             "pc": state.pc - 1,
             "model": model,
-            "constraints": list(trap.constraints_collected),
+            "constraints": list(state.constraints_collected) + [bad],
         })
 
-    state.constraints_collected.append(z3.Not(bad))
+    state.add_constraint(z3.Not(bad))
     state.sym_stack.append(z3.URem(dividend, divisor))
     return ("continue", state)

@@ -19,5 +19,5 @@ class Findings(TypedDict):
     constraints: list[z3.BoolRef]
 
 class HandlerFunc(Protocol):
-    def __call__(self, state: Any, arg: Any, program: Program) -> StepResult: ...
+    def __call__(self, state: Any, arg: Any) -> StepResult: ...
 

@@ -1,25 +1,25 @@
 from registry import OpcodeRegistry
 
 @OpcodeRegistry.register("nop")
-def nop(state, arg, program):
+def nop(state, _):
     return ("continue", state)
 
 @OpcodeRegistry.register("HALT")
-def halt(state, arg, program):
+def halt(state, _):
     return ("halt", state)
 
 @OpcodeRegistry.register("FOUND")
-def found(state, arg, program):
+def found(state, _):
     return ("continue", state)
 
 @OpcodeRegistry.register("LABEL")
-def label(state, arg, program):
+def label(state, _):
     return ("continue", state)
 
 @OpcodeRegistry.register("IF_TRUE")
-def if_true(state, arg, program):
+def if_true(state, _):
     return ("continue", state)
 
 @OpcodeRegistry.register("IF_FALSE")
-def if_false(state, arg, program):
+def if_false(state, _):
     return ("continue", state)

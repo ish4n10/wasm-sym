@@ -1,5 +1,6 @@
 from helpers.types import *
 from registry import OpcodeRegistry
+import z3
 
 counter = 0
 def get_id():
@@ -17,10 +18,23 @@ class State:
         self.sym_stack = []
         self.sym_locals = {}
         self.constraints_collected = []
+        self.solver = z3.Solver()
         self.findings = []
         self.memory = None  
         self.call_stack = []
         self.history = []
+
+    def add_constraint(self, c):
+        self.constraints_collected.append(c)
+        self.solver.add(c)
+
+    def check_trap(self, extra_cond):
+        self.solver.push()
+        self.solver.add(extra_cond)
+        result = self.solver.check()
+        model = self.solver.model() if result == z3.sat else None
+        self.solver.pop()
+        return result == z3.sat, model
 
     def clone(self, parent_id=None, via_condition=None):
         new = State(parent_id=parent_id, via_condition=via_condition)
@@ -29,7 +43,9 @@ class State:
         new.sym_locals = dict(self.sym_locals)
         new.constraints_collected = list(self.constraints_collected)
         new.findings = []
-        new.memory = self.memory  # Z3 Arrays are functional/immutable
+        for c in new.constraints_collected:
+            new.solver.add(c)
+        new.memory = self.memory
         new.call_stack = list(self.call_stack)
         new.history = list(self.history) 
         return new
@@ -44,7 +60,7 @@ class State:
         if handler is None:
             raise Exception(f"Unknown opcode '{opcode}' at pc={pc_before}")
 
-        status, payload = handler(self, arg, program)
+        status, payload = handler(self, arg)
 
         self.history.append({
             "state_id": self.state_id,
@@ -71,4 +87,3 @@ class State:
 
     def reconstruct_path(self):
         return list(self.history)
-

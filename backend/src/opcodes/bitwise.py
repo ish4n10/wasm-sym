@@ -8,7 +8,7 @@ from helpers.types import Program, StepResult
 
 
 @OpcodeRegistry.register("i32.xor")
-def i32_xor(state: State, arg: Any, program: Program) -> StepResult:
+def i32_xor(state: State, arg: Any) -> StepResult:
     val1 = state.sym_stack.pop()
     val2 = state.sym_stack.pop()
     if not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef):
@@ -18,7 +18,7 @@ def i32_xor(state: State, arg: Any, program: Program) -> StepResult:
 
 
 @OpcodeRegistry.register("i32.or")
-def i32_or(state: State, arg: Any, program: Program) -> StepResult:
+def i32_or(state: State, arg: Any) -> StepResult:
     val1 = state.sym_stack.pop()
     val2 = state.sym_stack.pop()
     if not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef):
@@ -28,7 +28,7 @@ def i32_or(state: State, arg: Any, program: Program) -> StepResult:
 
 
 @OpcodeRegistry.register("i32.and")
-def i32_and(state: State, arg: Any, program: Program) -> StepResult:
+def i32_and(state: State, arg: Any) -> StepResult:
     val1 = state.sym_stack.pop()
     val2 = state.sym_stack.pop()
     if not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef):
@@ -38,7 +38,7 @@ def i32_and(state: State, arg: Any, program: Program) -> StepResult:
 
 
 @OpcodeRegistry.register("i32.shl")
-def i32_shl(state: State, arg: Any, program: Program) -> StepResult:
+def i32_shl(state: State, arg: Any) -> StepResult:
     val1 = state.sym_stack.pop()
     val2 = state.sym_stack.pop()
     if not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef):
@@ -49,7 +49,7 @@ def i32_shl(state: State, arg: Any, program: Program) -> StepResult:
 
 
 @OpcodeRegistry.register("i32.shr_u")
-def i32_shr_u(state: State, arg: Any, program: Program) -> StepResult:
+def i32_shr_u(state: State, arg: Any) -> StepResult:
     val1 = state.sym_stack.pop()
     val2 = state.sym_stack.pop()
     if not isinstance(val1, z3.BitVecRef) or not isinstance(val2, z3.BitVecRef):

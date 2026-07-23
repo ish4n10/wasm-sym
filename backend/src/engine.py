@@ -1,6 +1,5 @@
 import z3
 from state import State
-from helpers.solve import is_sat
 from helpers.types import Program
 
 
@@ -32,8 +31,8 @@ def explore(program: Program) -> list[dict]:
                 ]:
                     child = state.clone()
                     child.pc = child_pc
-                    child.constraints_collected.append(child_cond)
-                    if is_sat(child.constraints_collected):
+                    child.add_constraint(child_cond)
+                    if child.solver.check() == z3.sat:
                         worklist.append(child)
 
                 all_findings.extend(state.findings)
