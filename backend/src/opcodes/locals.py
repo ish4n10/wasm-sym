@@ -10,7 +10,7 @@ from helpers.types import Program, StepResult
 def i32_const(state: State, arg: Any):
     value = z3.BitVecVal(arg, 32)
     if not isinstance(value, z3.BitVecNumRef):
-        return Exception("i32.const argument must be an integer")
+        raise Exception("i32.const argument must be an integer")
     state.sym_stack.append(value)
     return ("continue", state)
 
