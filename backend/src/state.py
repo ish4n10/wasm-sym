@@ -1,4 +1,4 @@
-from .helpers.types import * 
+from helpers.types import *
 from registry import OpcodeRegistry
 
 counter = 0
@@ -28,7 +28,7 @@ class State:
         new.sym_stack = list(self.sym_stack)
         new.sym_locals = dict(self.sym_locals)
         new.constraints_collected = list(self.constraints_collected)
-        new.findings = list(self.findings)
+        new.findings = []
         new.memory = self.memory  # Z3 Arrays are functional/immutable
         new.call_stack = list(self.call_stack)
         new.history = list(self.history) 

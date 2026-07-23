@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import key, Any
+from typing import Any
 import z3
 
 from registry import OpcodeRegistry
@@ -24,7 +24,7 @@ def local_get(state: State, arg: Any, program: Program) -> StepResult:
     return ("continue", state)
 
 @OpcodeRegistry.register("local.set")
-def local_get(state: State, arg: Any, program: Program) -> StepResult:
+def local_set(state: State, arg: Any, program: Program) -> StepResult:
     value = state.sym_stack.pop()
     state.sym_locals[arg] = value
     return ("continue", state) 
