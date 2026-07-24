@@ -3,7 +3,7 @@ from typing import Any
 import z3
 
 from registry import OpcodeRegistry
-from state import State
+from state import State, Frame
 from helpers.types import Program, StepResult
 
 
@@ -38,7 +38,8 @@ def unreachable(state: State, arg: Any):
 def call(state: State, arg: Any):
     if arg is None:
         raise Exception("call requires a target address")
-    state.call_stack.append(state.pc)
+    state.call_stack.append(Frame(state.sym_locals, state.pc))
+    state.sym_locals = {} 
     state.pc = arg
     return ("continue", state)
 
@@ -47,5 +48,7 @@ def call(state: State, arg: Any):
 def ret(state: State, arg: Any):
     if not state.call_stack:
         raise Exception("return called but call stack is empty")
-    state.pc = state.call_stack.pop()
+    frame: Frame = state.call_stack.pop()
+    state.pc = frame.locals
+    state.sym_locals = frame.locals
     return ("continue", state)

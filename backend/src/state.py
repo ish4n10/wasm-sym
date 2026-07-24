@@ -8,6 +8,13 @@ def get_id():
     counter += 1
     return counter 
 
+
+class Frame: 
+    def __init__(self, locals_: dict, return_pc: int):
+        self.locals = locals_
+        self.pc = return_pc
+
+
 class State:
     def __init__(self, parent_id=None, via_condition=None):
         self.state_id = get_id()
@@ -41,6 +48,7 @@ class State:
         new.pc = self.pc
         new.sym_stack = list(self.sym_stack)
         new.sym_locals = dict(self.sym_locals)
+        new.call_stack = [Frame(f.locals.copy(), f.pc) for f in self.call_stack]
         new.constraints_collected = list(self.constraints_collected)
         new.findings = []
         for c in new.constraints_collected:
