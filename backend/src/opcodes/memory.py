@@ -6,7 +6,12 @@ from registry import OpcodeRegistry
 from state import State
 from helpers.types import Program, StepResult
 
-MEMORY_SIZE = 65536
+PAGE_SIZE = 65536
+MAX_PAGES = 256
+
+
+def _mem_size(state: State) -> z3.BitVecRef:
+    return state.memory_pages * PAGE_SIZE
 
 
 @OpcodeRegistry.register("i32.load")
@@ -18,7 +23,8 @@ def i32_load(state: State, arg: Any) -> StepResult:
     if not isinstance(address, z3.BitVecRef):
         raise Exception("i32.load address must be a symbolic BitVec")
 
-    bad = z3.Or(z3.UGT(address + 4, MEMORY_SIZE))
+    size = _mem_size(state)
+    bad = z3.Or(z3.UGT(address + 4, size))
 
     is_sat, model = state.check_trap(bad)
     if is_sat:
@@ -48,7 +54,8 @@ def i32_store(state: State, arg: Any) -> StepResult:
     if not isinstance(address, z3.BitVecRef) or not isinstance(value, z3.BitVecRef):
         raise Exception("i32.store address and value must be symbolic BitVecs")
 
-    bad = z3.Or(z3.UGT(address + 4, MEMORY_SIZE))
+    size = _mem_size(state)
+    bad = z3.Or(z3.UGT(address + 4, size))
 
     is_sat, model = state.check_trap(bad)
     if is_sat:
@@ -70,4 +77,32 @@ def i32_store(state: State, arg: Any) -> StepResult:
     m = z3.Store(m, address + 2, b2)
     m = z3.Store(m, address + 3, b3)
     state.memory = m
+    return ("continue", state)
+
+
+@OpcodeRegistry.register("memory.grow")
+def memory_grow(state: State, arg: Any) -> StepResult:
+    n = state.sym_stack.pop()
+    if not isinstance(n, z3.BitVecRef):
+        raise Exception("memory.grow argument must be a symbolic BitVec")
+
+    old_pages = state.memory_pages
+    new_pages = old_pages + n
+
+    bad = z3.Or(n < z3.BitVecVal(0, 32), z3.UGT(new_pages, z3.BitVecVal(MAX_PAGES, 32)))
+
+    is_sat, model = state.check_trap(bad)
+    if is_sat:
+        state.findings.append({
+            "type": "memory_grow_failure",
+            "pc": state.pc - 1,
+            "model": model,
+            "constraints": list(state.constraints_collected) + [bad],
+        })
+
+    state.add_constraint(z3.Not(bad))
+    state.sym_stack.append(
+        z3.If(z3.Not(bad), old_pages, z3.BitVecVal(-1, 32))
+    )
+    state.memory_pages = z3.If(z3.Not(bad), new_pages, old_pages)
     return ("continue", state)

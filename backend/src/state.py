@@ -27,7 +27,8 @@ class State:
         self.constraints_collected = []
         self.solver = z3.Solver()
         self.findings = []
-        self.memory = None  
+        self.memory = None
+        self.memory_pages = z3.BitVecVal(1, 32)
         self.call_stack = []
         self.history = []
 
@@ -54,7 +55,7 @@ class State:
         for c in new.constraints_collected:
             new.solver.add(c)
         new.memory = self.memory
-        new.call_stack = list(self.call_stack)
+        new.memory_pages = self.memory_pages
         new.history = list(self.history) 
         return new
 
