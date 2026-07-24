@@ -270,7 +270,7 @@ def execute(request: ExecuteRequest):
         if not program:
             raise HTTPException(status_code=400, detail="No valid instructions found")
 
-        findings_raw = explore(program)
+        findings_raw, explored = explore(program)
 
         findings = []
         for f in findings_raw:
@@ -286,7 +286,7 @@ def execute(request: ExecuteRequest):
         return ExecuteResponse(
             findings=findings,
             statistics=StatisticsResponse(
-                exploredStates=0, totalFindings=len(findings)
+                exploredStates=explored, totalFindings=len(findings)
             ),
             program=program,
         )

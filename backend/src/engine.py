@@ -3,14 +3,16 @@ from state import State
 from helpers.types import Program
 
 
-def explore(program: Program) -> list[dict]:
+def explore(program: Program) -> tuple[list[dict], int]:
     import opcodes
 
     worklist = [State()]
     all_findings = []
+    explored = 0
 
     while worklist:
         state = worklist.pop()
+        explored += 1
 
         while state.pc < len(program):
             status, payload = state.step(program)
@@ -38,7 +40,7 @@ def explore(program: Program) -> list[dict]:
                 all_findings.extend(state.findings)
                 break
 
-    return all_findings
+    return all_findings, explored
 
 
 if __name__ == "__main__":

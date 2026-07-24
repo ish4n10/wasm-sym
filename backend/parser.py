@@ -6,6 +6,11 @@ def parse_code(text: str) -> list:
     for line in lines:
         line = line.strip()
         
+        # Strip inline comments (; ...)
+        comment_pos = line.find(';')
+        if comment_pos != -1:
+            line = line[:comment_pos].strip()
+        
         if not line or line.startswith('#'):
             continue
         
