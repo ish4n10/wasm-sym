@@ -33,6 +33,10 @@ class State:
         self.history = []
 
     def add_constraint(self, c):
+        c_str = str(c)
+        for existing in self.constraints_collected:
+            if str(existing) == c_str:
+                return
         self.constraints_collected.append(c)
         self.solver.add(c)
 

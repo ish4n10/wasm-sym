@@ -1,3 +1,4 @@
+import z3
 from registry import OpcodeRegistry
 
 @OpcodeRegistry.register("nop")
@@ -10,10 +11,11 @@ def halt(state, _):
 
 @OpcodeRegistry.register("FOUND")
 def found(state, _):
+    model = state.solver.model() if state.solver.check() == z3.sat else None
     state.findings.append({
         "type": "success",
         "pc": state.pc - 1,
-        "model": None,
+        "model": model,
         "constraints": list(state.constraints_collected),
     })
     return ("continue", state)

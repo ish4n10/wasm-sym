@@ -14,6 +14,8 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from parser import parse_code
 from engine import explore, ExecutionLimitError
+from helpers.z3_helpers import z3_to_readable
+import z3
 
 app = FastAPI(title="WASM Symbolic Executor")
 
@@ -39,6 +41,7 @@ class FindingResponse(BaseModel):
     pc: int
     model: Optional[Dict[str, str]]
     constraints: List[str]
+    simplified_constraints: List[str] = []
 
 
 class StatisticsResponse(BaseModel):
@@ -235,6 +238,23 @@ def model_to_dict(model):
     return result if result else None
 
 
+def _simplify_constraints(raw_constraints):
+    seen = set()
+    result = []
+    for c in raw_constraints:
+        try:
+            sc = z3.simplify(c)
+        except Exception:
+            sc = c
+        s = z3_to_readable(sc)
+        if s == "True":
+            continue
+        if s not in seen:
+            seen.add(s)
+            result.append(s)
+    return result
+
+
 @app.get("/")
 def root():
     return {
@@ -287,12 +307,14 @@ def execute(request: ExecuteRequest):
 
         findings = []
         for f in findings_raw:
+            raw_c = f.get("constraints", [])
             findings.append(
                 FindingResponse(
                     type=f["type"],
                     pc=f["pc"],
                     model=model_to_dict(f.get("model")),
-                    constraints=[str(c) for c in f.get("constraints", [])],
+                    constraints=[z3_to_readable(c) for c in raw_c],
+                    simplified_constraints=_simplify_constraints(raw_c),
                 )
             )
 
@@ -300,12 +322,14 @@ def execute(request: ExecuteRequest):
         for sr in state_records:
             sr_findings = []
             for sf in sr["findings"]:
+                raw_sc = sf.get("constraints", [])
                 sr_findings.append(
                     FindingResponse(
                         type=sf["type"],
                         pc=sf["pc"],
                         model=model_to_dict(sf.get("model")),
-                        constraints=[str(c) for c in sf.get("constraints", [])],
+                        constraints=[z3_to_readable(c) for c in raw_sc],
+                        simplified_constraints=_simplify_constraints(raw_sc),
                     )
                 )
             states.append(
