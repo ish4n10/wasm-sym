@@ -1,139 +1,159 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import CodeEditor from './components/CodeEditor';
-import GraphVisualization from './components/GraphVisualization';
-import ResultsPanel from './components/ResultsPanel';
-import OpcodesReference from './components/OpcodesReference';
-import type { ExecuteResponse, ExampleProgram } from './types';
-import './App.css';
+import { useState, useCallback, useMemo } from "react";
+import { useMutation } from "@tanstack/react-query";
+import EditorPane from "./components/EditorPane";
+import GraphPane from "./components/GraphPane";
+import InspectorPane from "./components/InspectorPane";
+import FindingsPane from "./components/FindingsPane";
+import OpcodesPane from "./components/OpcodesPane";
+import { executeCode } from "./api";
 
-const API_BASE_URL = 'http://localhost:8000';
+const DEMO_PROGRAM = `# Symbolic input: local_0 (a), local_1 (b)
+local.get 0
+i32.const 100
+i32.lt_s
+br_if 5
+HALT
+i32.const 50
+local.get 1
+i32.lt_s
+br_if 11
+HALT
+nop
+local.get 0
+local.get 1
+i32.add
+i32.const 2
+i32.mul
+local.set 3
+local.get 3
+i32.const 300
+i32.lt_s
+br_if 22
+HALT
+local.get 0
+i32.const 42
+i32.store
+local.get 0
+i32.load
+local.set 4
+FOUND`;
 
-function App() {
-  const [code, setCode] = useState('');
-  const [examples, setExamples] = useState<Record<string, string>>({});
-  const [graphData, setGraphData] = useState<ExecuteResponse['graphData'] | null>(null);
-  const [foundStates, setFoundStates] = useState<ExecuteResponse['foundStates']>([]);
-  const [statistics, setStatistics] = useState<ExecuteResponse['statistics'] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [maxSteps, setMaxSteps] = useState(1000);
+type Tab = "explore" | "findings" | "opcodes";
 
-  // Load examples on mount
-  useEffect(() => {
-    axios.get(`${API_BASE_URL}/examples`)
-      .then((response) => {
-        setExamples(response.data);
-        // Set default example
-        if (response.data.simple) {
-          setCode(response.data.simple);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to load examples:', err);
-      });
-  }, []);
+export default function App() {
+  const [code, setCode] = useState(DEMO_PROGRAM);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("explore");
 
-  const handleRun = async () => {
-    if (!code.trim()) {
-      setError('Please enter some code');
-      return;
-    }
+  const exec = useMutation({ mutationFn: executeCode });
 
-    setLoading(true);
-    setError(null);
-    setGraphData(null);
-    setFoundStates([]);
-    setStatistics(null);
+  const handleRun = useCallback(() => {
+    exec.mutate(code);
+  }, [code, exec]);
 
-    try {
-      const response = await axios.post<ExecuteResponse>(`${API_BASE_URL}/execute`, {
-        code,
-        max_steps: maxSteps,
-      });
+  const handlerError = exec.error
+    ? (exec.error instanceof Error ? exec.error.message : "An error occurred")
+    : null;
 
-      setGraphData(response.data.graphData);
-      setFoundStates(response.data.foundStates);
-      setStatistics(response.data.statistics);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'An error occurred');
-      console.error('Execution error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const stats = useMemo(() => {
+    if (!exec.data) return { total: 0, live: 0, dead: 0, found: 0, pending: 0 };
+    const n = exec.data.nodes;
+    return {
+      total: n.length,
+      live: n.filter((x) => x.state === "live").length,
+      dead: n.filter((x) => x.state === "dead").length,
+      found: n.filter((x) => x.state === "found").length,
+      pending: n.filter((x) => x.state === "pending").length,
+    };
+  }, [exec.data]);
 
-  const handleExampleSelect = (exampleCode: string) => {
-    setCode(exampleCode);
-  };
+  const selectedNode = exec.data?.nodes.find((n) => n.id === selected) ?? null;
+  const selectedNodeFindings = selectedNode?.findings ?? [];
+
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "explore", label: "Explore" },
+    { key: "findings", label: "Findings" },
+    { key: "opcodes", label: "Opcode Reference" },
+  ];
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>WASM Symbolic Executor</h1>
-        <p>Explore all possible execution paths of your WebAssembly-like program using symbolic execution.</p>
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
+      <header className="hairline-b flex h-14 items-center justify-between bg-surface/60 px-5 backdrop-blur">
+        <div className="flex items-center gap-3">
+          <img src="/src/assets/image.png" alt="SymVis" className="h-7 w-7 rounded-md object-cover" />
+          <div className="flex items-baseline gap-2">
+            <span className="text-serif text-[22px] italic leading-none">SymVis</span>
+            <span className="text-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              symbolic execution
+            </span>
+          </div>
+        </div>
+        <nav className="hidden items-center gap-1 md:flex">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className={`rounded-md px-3 py-1.5 text-[13px] transition-colors ${activeTab === t.key ? "bg-surface-2 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+        <div className="flex items-center gap-2">
+          <span className="text-mono text-[11px] text-muted-foreground">{stats.total} states · {stats.found} finding{stats.found === 1 ? "" : "s"}</span>
+        </div>
       </header>
 
-      <div className="app-content">
-        <div className="left-panel">
-          <CodeEditor
-            code={code}
-            onCodeChange={setCode}
-            examples={examples}
-            onExampleSelect={handleExampleSelect}
+      {activeTab === "explore" ? (
+        <div className="grid min-h-0 flex-1 grid-cols-[380px_1fr_360px]">
+          <EditorPane code={code} setCode={setCode} loading={exec.isPending} onRun={handleRun} />
+          <GraphPane
+            nodes={exec.data?.nodes ?? []}
+            edges={exec.data?.edges ?? []}
+            selected={selected}
+            setSelected={setSelected}
           />
-          
-          <div className="controls">
-            <div className="settings">
-              <label>
-                Max Steps:
-                <input
-                  type="number"
-                  value={maxSteps}
-                  onChange={(e) => setMaxSteps(parseInt(e.target.value) || 1000)}
-                  min={100}
-                  max={10000}
-                  step={100}
-                />
-              </label>
-            </div>
-            <button
-              onClick={handleRun}
-              disabled={loading}
-              className="run-button"
-            >
-              {loading ? 'Running...' : 'Run Symbolic Execution'}
-            </button>
-          </div>
-
-          {error && (
-            <div className="error-message">
-              <strong>Error:</strong> {error}
-            </div>
-          )}
-        </div>
-
-        <div className="right-panel">
-          <div className="visualization-section">
-            <h3>Execution Graph</h3>
-            <GraphVisualization
-              graphData={graphData}
-              onNodeClick={setSelectedNodeId}
-            />
-          </div>
-
-          <ResultsPanel
-            foundStates={foundStates}
-            statistics={statistics}
-            selectedNodeId={selectedNodeId}
+          <InspectorPane
+            node={selectedNode}
+            findings={selectedNodeFindings}
+            constraints={selectedNode?.constraints ?? []}
           />
         </div>
-      </div>
-      
-      <OpcodesReference />
+      ) : activeTab === "findings" ? (
+        <div className="grid min-h-0 flex-1 grid-cols-[380px_1fr_360px]">
+          <EditorPane code={code} setCode={setCode} loading={exec.isPending} onRun={handleRun} />
+          <FindingsPane data={exec.data ?? null} />
+          <InspectorPane
+            node={selectedNode}
+            findings={selectedNodeFindings}
+            constraints={selectedNode?.constraints ?? []}
+          />
+        </div>
+      ) : (
+        <div className="grid min-h-0 flex-1 grid-cols-[380px_1fr_360px]">
+          <EditorPane code={code} setCode={setCode} loading={exec.isPending} onRun={handleRun} />
+          <OpcodesPane />
+          <InspectorPane
+            node={selectedNode}
+            findings={selectedNodeFindings}
+            constraints={selectedNode?.constraints ?? []}
+          />
+        </div>
+      )}
+
+      <footer className="hairline-t flex h-8 items-center justify-between bg-surface/60 px-5 text-[11px] text-muted-foreground">
+        <div className="text-mono flex items-center gap-4">
+          <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-live" /> solver ready</span>
+          <span>z3 · 4.13.0</span>
+        </div>
+        <div className="text-mono flex items-center gap-4">
+          {handlerError && <span style={{ color: "var(--color-dead)" }}>error: {handlerError}</span>}
+          {exec.isPending && <span className="text-found">running...</span>}
+          <span>live {stats.live}</span>
+          <span>dead {stats.dead}</span>
+          <span style={{ color: "var(--color-found)" }}>found {stats.found}</span>
+        </div>
+      </footer>
     </div>
   );
 }
-
-export default App;

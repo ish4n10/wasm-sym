@@ -1,68 +1,125 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-hairline: var(--hairline);
+
+  --color-live: var(--live);
+  --color-dead: var(--dead);
+  --color-found: var(--found);
+  --color-pending: var(--pending);
+  --color-accent: var(--accent);
+}
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --background: oklch(0.17 0.008 80);
+  --surface:    oklch(0.205 0.009 80);
+  --surface-2:  oklch(0.245 0.010 80);
+  --foreground: oklch(0.965 0.010 85);
+  --muted:      oklch(0.30 0.010 80);
+  --muted-foreground: oklch(0.70 0.012 85);
+  --border:     oklch(0.32 0.010 80);
+  --hairline:   oklch(0.27 0.008 80);
+  --live:    oklch(0.86 0.16 158);
+  --dead:    oklch(0.70 0.19 22);
+  --found:   oklch(0.86 0.16 88);
+  --pending: oklch(0.72 0.05 240);
+  --accent:  oklch(0.86 0.16 88);
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+@layer base {
+  * { border-color: var(--color-border); }
+  html, body, #root { height: 100%; }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
   }
 }
+
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: -1px -1px;
+}
+
+@utility bg-grid-fine {
+  background-image:
+    radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+@utility hairline-t { border-top: 1px solid var(--color-hairline); }
+@utility hairline-b { border-bottom: 1px solid var(--color-hairline); }
+@utility hairline-r { border-right: 1px solid var(--color-hairline); }
+@utility hairline-l { border-left: 1px solid var(--color-hairline); }
+
+@utility text-mono { font-family: var(--font-mono); font-feature-settings: "zero", "ss01"; }
+@utility text-serif { font-family: var(--font-serif); }
+
+.react-flow {
+  --xy-controls-button-background-color: var(--surface);
+  --xy-controls-button-color: var(--muted-foreground);
+  --xy-controls-button-border-color: var(--border);
+  --xy-controls-box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.3);
+  --xy-attribution-background-color: transparent;
+}
+.react-flow__controls {
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  border-bottom-color: var(--border) !important;
+}
+.react-flow__attribution { display: none !important; }
+.react-flow__controls-button:hover {
+  background: var(--surface-2) !important;
+  color: var(--foreground) !important;
+}
+
+.react-flow__edge-textbg {
+  rx: 6;
+  ry: 6;
+}
+
+@keyframes halo-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50%      { opacity: 0.75; transform: scale(1.08); }
+}
+@utility halo { animation: halo-pulse 2.4s ease-in-out infinite; }
+
+@keyframes flow-dash {
+  to { stroke-dashoffset: -24; }
+}
+@utility flow-anim { stroke-dasharray: 4 6; animation: flow-dash 1.4s linear infinite; }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 999px; }
