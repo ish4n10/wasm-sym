@@ -45,10 +45,22 @@ class StatisticsResponse(BaseModel):
     totalFindings: int
 
 
+class StateResponse(BaseModel):
+    id: int
+    pc: int
+    label: str
+    status: str
+    parent_id: int | None
+    via_condition: str | None
+    findings: List[FindingResponse]
+    constraints: List[str]
+
+
 class ExecuteResponse(BaseModel):
     findings: List[FindingResponse]
     statistics: StatisticsResponse
     program: List
+    states: List[StateResponse]
 
 
 OPCODES = {
@@ -270,7 +282,7 @@ def execute(request: ExecuteRequest):
         if not program:
             raise HTTPException(status_code=400, detail="No valid instructions found")
 
-        findings_raw, explored = explore(program)
+        findings_raw, explored, state_records = explore(program)
 
         findings = []
         for f in findings_raw:
@@ -283,12 +295,38 @@ def execute(request: ExecuteRequest):
                 )
             )
 
+        states = []
+        for sr in state_records:
+            sr_findings = []
+            for sf in sr["findings"]:
+                sr_findings.append(
+                    FindingResponse(
+                        type=sf["type"],
+                        pc=sf["pc"],
+                        model=model_to_dict(sf.get("model")),
+                        constraints=[str(c) for c in sf.get("constraints", [])],
+                    )
+                )
+            states.append(
+                StateResponse(
+                    id=sr["id"],
+                    pc=sr["pc"],
+                    label=sr["label"],
+                    status=sr["status"],
+                    parent_id=sr["parent_id"],
+                    via_condition=sr["via_condition"],
+                    findings=sr_findings,
+                    constraints=[str(c) for c in sr.get("constraints", [])],
+                )
+            )
+
         return ExecuteResponse(
             findings=findings,
             statistics=StatisticsResponse(
                 exploredStates=explored, totalFindings=len(findings)
             ),
             program=program,
+            states=states,
         )
 
     except Exception as e:

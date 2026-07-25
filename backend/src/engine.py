@@ -1,114 +1,94 @@
 import z3
 from state import State
 from helpers.types import Program
+from helpers.z3_helpers import z3_to_readable
 
 
-def explore(program: Program) -> tuple[list[dict], int]:
+def explore(program: Program) -> tuple[list[dict], int, list[dict]]:
     import opcodes
 
-    worklist = [State()]
-    all_findings = []
-    explored = 0
+    worklist: list[State] = [State()]
+    all_findings: list[dict] = []
+    explored: int = 0
+    state_records: list[dict] = []
+    pending_ids: set[int] = set()
+
+    def add_pending(state: State):
+        pending_ids.add(state.state_id)
+
+    def format_instruction(pc: int) -> str:
+        if pc < len(program):
+            instr = program[pc]
+            opcode = instr[0]
+            arg = instr[1] if len(instr) > 1 else None
+            return f"{opcode} {arg}" if arg is not None else opcode
+        return "<end>"
+
+    def record_state(state: State, status: str, label: str | None = None):
+        readable_constraints = [z3_to_readable(c) for c in state.constraints_collected]
+        state_records.append({
+            "id": state.state_id,
+            "pc": state.pc,
+            "label": label or format_instruction(state.pc),
+            "status": status,
+            "parent_id": state.parent_id,
+            "via_condition": z3_to_readable(state.via_condition) if state.via_condition else None,
+            "findings": list(state.findings),
+            "constraints": readable_constraints,
+        })
+
+    add_pending(State())
+    pending_ids.clear()
 
     while worklist:
         state = worklist.pop()
         explored += 1
 
-        while state.pc < len(program):
-            status, payload = state.step(program)
+        label = format_instruction(state.pc)
 
-            if status == "continue":
+        if state.pc >= len(program):
+            all_findings.extend(state.findings)
+            status = "found" if state.findings else "dead"
+            record_state(state, status, label)
+            continue
+
+        last_status = None
+        last_payload = None
+        while state.pc < len(program):
+            last_status, last_payload = state.step(program)
+
+            if last_status == "continue":
                 continue
 
-            elif status == "halt":
+            elif last_status == "halt":
                 all_findings.extend(state.findings)
                 break
 
-            elif status == "branch":
-                cond, target = payload
-
+            elif last_status == "branch":
+                cond, target = last_payload
                 for child_cond, child_pc in [
                     (cond, target),
                     (z3.Not(cond), state.pc),
                 ]:
-                    child = state.clone()
+                    child = state.clone(parent_id=state.state_id, via_condition=child_cond)
                     child.pc = child_pc
                     child.add_constraint(child_cond)
                     if child.solver.check() == z3.sat:
                         worklist.append(child)
+                        add_pending(child)
 
                 all_findings.extend(state.findings)
                 break
 
-    return all_findings, explored
+        if last_status == "halt":
+            status = "found" if state.findings else "dead"
+            record_state(state, status, label)
+        elif last_status == "branch":
+            status = "live"
+            record_state(state, status, label)
+        else:
+            all_findings.extend(state.findings)
+            status = "found" if state.findings else "dead"
+            record_state(state, status, label)
 
-
-if __name__ == "__main__":
-    program: Program = [
-        ("local.get", 0),
-        ("i32.const", 100),
-        ("i32.lt_s",),
-        ("br_if", 5),
-        ("HALT",),
-        ("i32.const", 50),
-        ("local.get", 1),
-        ("i32.lt_s",),
-        ("br_if", 11),
-        ("HALT",),
-        ("nop",),
-        ("local.get", 0),
-        ("local.get", 1),
-        ("i32.add",),
-        ("i32.const", 2),
-        ("i32.mul",),
-        ("local.set", 3),
-        ("local.get", 3),
-        ("i32.const", 300),
-        ("i32.lt_s",),
-        ("br_if", 22),
-        ("HALT",),
-        ("local.get", 0),
-        ("i32.const", 42),
-        ("i32.store",),
-        ("local.get", 0),
-        ("i32.load",),
-        ("local.set", 4),
-        ("local.get", 0),
-        ("local.get", 1),
-        ("i32.xor",),
-        ("local.get", 2),
-        ("i32.and",),
-        ("i32.const", 0),
-        ("i32.eqz",),
-        ("br_if", 37),
-        ("HALT",),
-        ("local.get", 0),
-        ("i32.const", 3),
-        ("i32.shl",),
-        ("local.get", 1),
-        ("i32.const", 2),
-        ("i32.shr_u",),
-        ("i32.add",),
-        ("local.set", 5),
-        ("local.get", 5),
-        ("local.get", 3),
-        ("i32.const", 10),
-        ("i32.add",),
-        ("i32.eq",),
-        ("br_if", 52),
-        ("HALT",),
-        ("local.get", 0),
-        ("local.get", 1),
-        ("i32.sub",),
-        ("i32.const", 0),
-        ("i32.lt_s",),
-        ("br_if", 59),
-        ("HALT",),
-        ("nop",),
-        ("FOUND",),
-    ]
-
-    findings = explore(program)
-    print(f"Total findings: {len(findings)}")
-    for f in findings:
-        print(f)
+    return all_findings, explored, state_records

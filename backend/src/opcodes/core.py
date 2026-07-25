@@ -10,6 +10,12 @@ def halt(state, _):
 
 @OpcodeRegistry.register("FOUND")
 def found(state, _):
+    state.findings.append({
+        "type": "success",
+        "pc": state.pc - 1,
+        "model": None,
+        "constraints": list(state.constraints_collected),
+    })
     return ("continue", state)
 
 @OpcodeRegistry.register("LABEL")
