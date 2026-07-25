@@ -2,6 +2,7 @@
 FastAPI server for WASM Symbolic Executor
 """
 
+import traceback
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -12,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from parser import parse_code
-from engine import explore
+from engine import explore, ExecutionLimitError
 
 app = FastAPI(title="WASM Symbolic Executor")
 
@@ -328,9 +329,12 @@ def execute(request: ExecuteRequest):
             program=program,
             states=states,
         )
-
+    except ExecutionLimitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 if __name__ == "__main__":

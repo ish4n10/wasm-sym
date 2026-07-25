@@ -49,6 +49,6 @@ def ret(state: State, arg: Any):
     if not state.call_stack:
         raise Exception("return called but call stack is empty")
     frame: Frame = state.call_stack.pop()
-    state.pc = frame.locals
+    state.pc = frame.pc
     state.sym_locals = frame.locals
     return ("continue", state)

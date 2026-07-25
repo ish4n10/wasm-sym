@@ -4,6 +4,14 @@ from helpers.types import Program
 from helpers.z3_helpers import z3_to_readable
 
 
+MAX_STATES = 200
+MAX_STEPS_PER_STATE = 10000
+
+
+class ExecutionLimitError(Exception):
+    pass
+
+
 def explore(program: Program) -> tuple[list[dict], int, list[dict]]:
     import opcodes
 
@@ -32,7 +40,7 @@ def explore(program: Program) -> tuple[list[dict], int, list[dict]]:
             "label": label or format_instruction(state.pc),
             "status": status,
             "parent_id": state.parent_id,
-            "via_condition": z3_to_readable(state.via_condition) if state.via_condition else None,
+            "via_condition": z3_to_readable(state.via_condition) if state.via_condition is not None else None,
             "findings": list(state.findings),
             "constraints": readable_constraints,
         })
@@ -44,6 +52,12 @@ def explore(program: Program) -> tuple[list[dict], int, list[dict]]:
         state = worklist.pop()
         explored += 1
 
+        if explored > MAX_STATES:
+            raise ExecutionLimitError(
+                f"Exceeded maximum of {MAX_STATES} explored states. "
+                "Your program may contain an unbounded loop or recursion."
+            )
+
         label = format_instruction(state.pc)
 
         if state.pc >= len(program):
@@ -54,7 +68,14 @@ def explore(program: Program) -> tuple[list[dict], int, list[dict]]:
 
         last_status = None
         last_payload = None
+        steps = 0
         while state.pc < len(program):
+            steps += 1
+            if steps > MAX_STEPS_PER_STATE:
+                raise ExecutionLimitError(
+                    f"Exceeded maximum of {MAX_STEPS_PER_STATE} steps for a single state. "
+                    "Your program may contain an unbounded loop."
+                )
             last_status, last_payload = state.step(program)
 
             if last_status == "continue":
