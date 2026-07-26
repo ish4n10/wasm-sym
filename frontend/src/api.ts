@@ -39,6 +39,7 @@ export interface GraphNode {
   findings: Finding[];
   constraints: string[];
   via_condition: string | null;
+  [key: string]: unknown;
 }
 
 export interface GraphEdge {
@@ -46,6 +47,7 @@ export interface GraphEdge {
   to: string;
   constraint: string | null;
   active: boolean;
+  [key: string]: unknown;
 }
 
 export interface ExecuteResult {
@@ -103,7 +105,7 @@ function buildGraph(states: StateResponse[]) {
   function traverse(parentId: number | null) {
     const children = byParent.get(parentId) ?? [];
     for (const s of children) {
-      const status: GraphNode["state"] = s.findings.length > 0 ? "found" : "live";
+      const status: GraphNode["state"] = (s.findings.length > 0 ? "found" : "live") as GraphNode["state"];
 
       nodes.push({
         id: `s${s.id}`,

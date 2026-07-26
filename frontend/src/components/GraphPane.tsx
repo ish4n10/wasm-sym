@@ -1,5 +1,5 @@
 import { useMemo, useCallback, useEffect, useState } from "react";
-import type { Node, Edge, NodeProps } from "@xyflow/react";
+import type { Node, Edge, NodeProps, BackgroundVariant } from "@xyflow/react";
 import {
   ReactFlow,
   useNodesState,
@@ -124,7 +124,7 @@ function computeActiveSet(clickedId: string | null, rfedges: RFEdge[]): Set<stri
   return active;
 }
 
-function ExecNode({ data }: NodeProps<AppGraphNode>) {
+function ExecNode({ data }: NodeProps<Node<AppGraphNode>>) {
   const stateColor = colorFor(data.state);
   const isFound = data.state === "found";
   const isDead = data.state === "dead";
@@ -213,7 +213,7 @@ function ExecNode({ data }: NodeProps<AppGraphNode>) {
   );
 }
 
-const nodeTypes = { execNode: ExecNode };
+const nodeTypes = { execNode: ExecNode } as const;
 
 interface GraphPaneProps {
   nodes: AppGraphNode[];
@@ -222,7 +222,7 @@ interface GraphPaneProps {
   setSelected: (id: string | null) => void;
 }
 
-export default function GraphPane({ nodes, edges, selected, setSelected }: GraphPaneProps) {
+export default function GraphPane({ nodes, edges, selected: _selected, setSelected }: GraphPaneProps) {
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   const { rfnodes: layoutedNodes, rfedges: layoutedEdges } = useMemo(
@@ -230,8 +230,8 @@ export default function GraphPane({ nodes, edges, selected, setSelected }: Graph
     [nodes, edges],
   );
 
-  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState([]);
-  const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState([]);
+  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState<Node<AppGraphNode>>([]);
+  const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState<Edge<AppGraphEdge>>([]);
 
   const activeIds = useMemo(() => {
     if (!highlightedId || !layoutedNodes.some((n) => n.id === highlightedId)) {
@@ -318,7 +318,7 @@ export default function GraphPane({ nodes, edges, selected, setSelected }: Graph
         fitViewOptions={{ padding: 0.3 }}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant="dots" gap={24} size={2} color="var(--color-muted)" style={{ opacity: 0.35, background: "#0c0c0c" }} />
+        <Background variant={"dots" as BackgroundVariant} gap={24} size={2} color="var(--color-muted)" style={{ opacity: 0.35, background: "#0c0c0c" }} />
         <Controls showInteractive={false} />
       </ReactFlow>
     </section>
