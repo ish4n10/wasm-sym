@@ -256,16 +256,8 @@ def _simplify_constraints(raw_constraints):
 
 
 @app.get("/")
-def root():
-    return {
-        "name": "WASM Symbolic Executor",
-        "endpoints": {
-            "GET /opcodes": "List all supported opcodes",
-            "GET /examples": "List example programs",
-            "POST /parse": "Parse code without executing",
-            "POST /execute": "Run symbolic execution and return findings",
-        },
-    }
+def health():
+    return {"status": "ok"}
 
 
 @app.get("/opcodes")
@@ -360,6 +352,9 @@ def execute(request: ExecuteRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
+from mangum import Mangum
+handler = Mangum(app)
 
 if __name__ == "__main__":
     import uvicorn
