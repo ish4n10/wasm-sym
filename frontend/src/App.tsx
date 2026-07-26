@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import EditorPane from "./components/EditorPane";
 import GraphPane from "./components/GraphPane";
 import InspectorPane from "./components/InspectorPane";
+import logo from "./assets/image.png";
 import FindingsPane from "./components/FindingsPane";
 import OpcodesPane from "./components/OpcodesPane";
 import { executeCode } from "./api";
@@ -80,7 +81,7 @@ export default function App() {
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
       <header className="hairline-b flex h-14 items-center justify-between bg-surface/60 px-5 backdrop-blur">
         <div className="flex items-center gap-3">
-          <img src="/src/assets/image.png" alt="SymVis" className="h-7 w-7 rounded-md object-cover" />
+          <img src={logo} alt="SymVis" className="h-7 w-7 rounded-md object-cover" />
           <div className="flex items-baseline gap-2">
             <span className="text-serif text-[22px] italic leading-none">SymVis</span>
             <span className="text-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
