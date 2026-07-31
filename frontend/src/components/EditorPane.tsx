@@ -4,6 +4,8 @@ import { fetchExamples } from "../api";
 interface EditorPaneProps {
   code: string;
   setCode: (s: string) => void;
+  inputs: Record<string, number>;
+  setInputs: (v: Record<string, number>) => void;
   loading: boolean;
   onRun: () => void;
 }
@@ -12,8 +14,21 @@ function Dot({ className = "" }: { className?: string }) {
   return <span className={`h-1.5 w-1.5 rounded-full ${className}`} />;
 }
 
-export default function EditorPane({ code, setCode, loading, onRun }: EditorPaneProps) {
+export default function EditorPane({ code, setCode, inputs, setInputs, loading, onRun }: EditorPaneProps) {
   const lines = code.split("\n");
+
+  const addInput = () => {
+    let i = 0;
+    const names = Object.keys(inputs);
+    while (names.includes(`local_${i}`)) i++;
+    setInputs({ ...inputs, [`local_${i}`]: 0 });
+  };
+
+  const removeInput = (name: string) => {
+    const next = { ...inputs };
+    delete next[name];
+    setInputs(next);
+  };
 
   const { data: examples } = useQuery({
     queryKey: ["examples"],
@@ -73,6 +88,43 @@ export default function EditorPane({ code, setCode, loading, onRun }: EditorPane
       </div>
 
       <div className="hairline-t p-4">
+        <label className="text-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+          seed inputs
+        </label>
+        <div className="mt-2 space-y-1.5">
+          {Object.keys(inputs)
+            .sort()
+            .map((name) => (
+              <div key={name} className="flex items-center gap-1.5">
+                <span className="text-mono w-16 text-[11px] text-foreground">{name}</span>
+                <input
+                  type="number"
+                  value={inputs[name]}
+                  onChange={(e) => setInputs({ ...inputs, [name]: Number(e.target.value) })}
+                  className="text-mono w-full rounded border border-border bg-surface px-2 py-1 text-[12px] text-foreground outline-none focus:border-found"
+                />
+                <button
+                  onClick={() => removeInput(name)}
+                  title={`Remove ${name}`}
+                  className="text-mono px-1 text-[13px] text-muted-foreground hover:text-dead"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          {Object.keys(inputs).length === 0 && (
+            <p className="text-mono text-[11px] text-muted-foreground">
+              none — inputs fully symbolic
+            </p>
+          )}
+        </div>
+        <button
+          onClick={addInput}
+          className="text-mono mt-2 text-[11px] text-muted-foreground hover:text-found"
+        >
+          + add local input
+        </button>
+
         <button
           onClick={onRun}
           disabled={loading || !code.trim()}

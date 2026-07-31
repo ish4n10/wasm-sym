@@ -105,7 +105,7 @@ function buildGraph(states: StateResponse[]) {
   function traverse(parentId: number | null) {
     const children = byParent.get(parentId) ?? [];
     for (const s of children) {
-      const status: GraphNode["state"] = (s.findings.length > 0 ? "found" : "live") as GraphNode["state"];
+      const status = s.status as GraphNode["state"];
 
       nodes.push({
         id: `s${s.id}`,
@@ -135,8 +135,8 @@ function buildGraph(states: StateResponse[]) {
   return { nodes, edges };
 }
 
-export async function executeCode(code: string): Promise<ExecuteResult> {
-  const data = await apiPost<ExecuteResponse>("/execute", { code });
+export async function executeCode(code: string, inputs?: Record<string, number>): Promise<ExecuteResult> {
+  const data = await apiPost<ExecuteResponse>("/execute", { code, inputs });
   const { nodes, edges } = buildGraph(data.states);
   return { ...data, nodes, edges };
 }

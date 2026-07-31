@@ -19,7 +19,9 @@ class ConcolicState(State):
             self.add_constraint(sym == z3.BitVecVal(val & 0xFFFFFFFF, 32))
 
 
-def concolic_run(program: Program, seed: dict[str, int]) -> tuple[ConcolicState, list[z3.BoolRef]]:
+def concolic_run(
+    program: Program, seed: dict[str, int], max_steps: int | None = None
+) -> tuple[ConcolicState, list[z3.BoolRef]]:
     state = ConcolicState(seed)
-    state.run_concolic(program)
+    state.run_concolic(program, max_steps=max_steps)
     return state, state.path_conditions

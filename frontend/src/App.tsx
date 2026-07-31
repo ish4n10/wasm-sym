@@ -6,7 +6,7 @@ import InspectorPane from "./components/InspectorPane";
 import logo from "./assets/image.png";
 import FindingsPane from "./components/FindingsPane";
 import OpcodesPane from "./components/OpcodesPane";
-import { executeCode } from "./api";
+import { executeCode, type ExecuteResult } from "./api";
 
 const DEMO_PROGRAM = `# Symbolic input: local_0 (a), local_1 (b)
 local.get 0
@@ -43,14 +43,17 @@ type Tab = "explore" | "findings" | "opcodes";
 
 export default function App() {
   const [code, setCode] = useState(DEMO_PROGRAM);
+  const [inputs, setInputs] = useState<Record<string, number>>({ local_0: 0 });
   const [selected, setSelected] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("explore");
 
-  const exec = useMutation({ mutationFn: executeCode });
+  const exec = useMutation<ExecuteResult, Error, { code: string; inputs: Record<string, number> }>({
+    mutationFn: ({ code, inputs }) => executeCode(code, inputs),
+  });
 
   const handleRun = useCallback(() => {
-    exec.mutate(code);
-  }, [code, exec]);
+    exec.mutate({ code, inputs });
+  }, [code, inputs, exec]);
 
   const handlerError = exec.error
     ? (exec.error instanceof Error ? exec.error.message : "An error occurred")
@@ -107,7 +110,7 @@ export default function App() {
 
       {activeTab === "explore" ? (
         <div className="grid min-h-0 flex-1 grid-cols-[380px_1fr_360px]">
-          <EditorPane code={code} setCode={setCode} loading={exec.isPending} onRun={handleRun} />
+          <EditorPane code={code} setCode={setCode} inputs={inputs} setInputs={setInputs} loading={exec.isPending} onRun={handleRun} />
           <GraphPane
             nodes={exec.data?.nodes ?? []}
             edges={exec.data?.edges ?? []}
@@ -122,7 +125,7 @@ export default function App() {
         </div>
       ) : activeTab === "findings" ? (
         <div className="grid min-h-0 flex-1 grid-cols-[380px_1fr_360px]">
-          <EditorPane code={code} setCode={setCode} loading={exec.isPending} onRun={handleRun} />
+          <EditorPane code={code} setCode={setCode} inputs={inputs} setInputs={setInputs} loading={exec.isPending} onRun={handleRun} />
           <FindingsPane data={exec.data ?? null} />
           <InspectorPane
             node={selectedNode}
@@ -132,7 +135,7 @@ export default function App() {
         </div>
       ) : (
         <div className="grid min-h-0 flex-1 grid-cols-[380px_1fr_360px]">
-          <EditorPane code={code} setCode={setCode} loading={exec.isPending} onRun={handleRun} />
+          <EditorPane code={code} setCode={setCode} inputs={inputs} setInputs={setInputs} loading={exec.isPending} onRun={handleRun} />
           <OpcodesPane />
           <InspectorPane
             node={selectedNode}

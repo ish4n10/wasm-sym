@@ -52,9 +52,11 @@ falls short:
   see Roadmap.
 - **Path exploration is brute-force symbolic, with hard caps rather than smart
   bounding.** `MAX_STATES = 200` and `MAX_STEPS_PER_STATE = 10000` stop runaway
-  exploration, but they're blunt limits, not a coverage-guided or concolic strategy —
-  a sufficiently branchy program will just hit the cap and stop exploring, not
-  intelligently prioritize which paths matter.
+  exploration, but they're blunt limits — a sufficiently branchy program will just
+  hit the cap and stop exploring, not intelligently prioritize which paths matter.
+  A **concolic mode** (`inputs` on `POST /execute`) drives concrete seed inputs
+  through the program and flips one branch condition at a time to discover new
+  inputs, which finds paths brute-force symbolic execution might miss.
 - **`call`/`return` support is a simple frame-based stack** (save locals + PC on
   `call`, restore on `return`) — it hasn't been tested against deep recursion or
   mutual recursion between functions.
@@ -183,6 +185,17 @@ image support can't parse.
 Returns findings, the full state tree (for graph rendering), and execution
 statistics (states explored, cap hit or not).
 
+Include an optional `inputs` object to run **concolic execution** instead of
+brute-force symbolic exploration — the engine follows the concrete seed path,
+then flips one branch at a time to discover new inputs:
+
+```json
+{ "code": "...", "inputs": { "local_0": 0, "local_1": 42 } }
+```
+
+When `inputs` is present, `findings[].model` contains the concrete input values
+that reached each finding.
+
 ## Deployment
 
 - **Backend**: Docker container to AWS Lambda (ECR → Lambda, behind an API Gateway
@@ -198,9 +211,12 @@ statistics (states explored, cap hit or not).
   feeding decoded instructions into the existing interpreter unchanged. This is the
   largest remaining gap between "demo engine" and "tool that analyzes code someone
   else actually wrote."
-- **Concolic execution.** Bound path explosion properly instead of relying on hard
-  caps — seed with one concrete input, track symbolic constraints alongside it, and
-  negate one branch condition at a time to systematically discover new paths. This is
-  the standard approach used by KLEE and angr for the same underlying problem.
-- **Coverage-guided path prioritization**, once concolic execution is in place —
-  explore branches more likely to reach new code first, rather than a flat BFS order.
+- **Concolic execution.** Done in its basic form — `POST /execute` accepts an
+  optional `inputs` object (e.g. `{"local_0": 3}`); the engine runs the seed through
+  a concrete interpreter that tracks symbolic path conditions, then negates each
+  branch condition in turn (KLEE/angr-style) to discover new inputs. The tri
+  example finds both `local_0=3` and `local_0=4` from a single seed of `0`. Future
+  work: coverage-guided input selection, constraint caching, and deeper pruning of
+  redundant paths.
+- **Coverage-guided path prioritization** — explore branches more likely to reach
+  new code first, rather than a flat BFS order.

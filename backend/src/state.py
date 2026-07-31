@@ -89,17 +89,46 @@ class State:
 
         return status, payload
 
+    def concrete_pins(self) -> dict[str, z3.BitVecNumRef]:
+        """Concrete facts (local_N == const) known along the current path."""
+        pins = {}
+        for c in self.constraints_collected:
+            if z3.is_eq(c):
+                a, b = c.arg(0), c.arg(1)
+                for var, val in ((a, b), (b, a)):
+                    if z3.is_const(var) and z3.is_bv_value(val):
+                        name = var.decl().name()
+                        if name.startswith("local_"):
+                            pins[name] = val
+        return pins
+
+    def eval_concrete(self, cond) -> bool | None:
+        """Evaluate cond against concrete variable values, without the solver.
+        Returns True/False when fully determined, None otherwise."""
+        pins = self.concrete_pins()
+        if not pins:
+            return None
+        evaluated = z3.simplify(z3.substitute(
+            cond, [(z3.BitVec(name, 32), val) for name, val in pins.items()]
+        ))
+        if z3.is_true(evaluated):
+            return True
+        if z3.is_false(evaluated):
+            return False
+        return None
+
     def step_concolic(self, program: Program):
-        """Step, following only the feasible branch. Taken branch conditions
-        are recorded in ``path_conditions`` (in the form actually taken)."""
+        """Step, following the branch actually taken by the concrete input.
+        Taken branch conditions are recorded in ``path_conditions`` (in the form
+        actually taken). Branch direction is decided by concrete evaluation of the
+        condition — the solver is not consulted here."""
         status, payload = self.step(program)
 
         if status == "branch":
             cond, target = payload
-            self.solver.push()
-            self.solver.add(cond)
-            taken = self.solver.check() == z3.sat
-            self.solver.pop()
+            taken = self.eval_concrete(cond)
+            if taken is None:
+                taken = False
 
             if taken:
                 self.add_constraint(cond)
@@ -113,9 +142,13 @@ class State:
 
         return status, payload
 
-    def run_concolic(self, program: Program):
+    def run_concolic(self, program: Program, max_steps: int | None = None):
+        steps = 0
         while self.pc < len(program):
             status, _ = self.step_concolic(program)
+            steps += 1
+            if max_steps is not None and steps > max_steps:
+                break
             if status == "halt":
                 break
         return self

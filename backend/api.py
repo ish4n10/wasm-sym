@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from parser import parse_code
 from engine import explore, ExecutionLimitError
+from concolic import concolic_explore
 from helpers.z3_helpers import z3_to_readable
 import z3
 
@@ -30,6 +31,7 @@ app.add_middleware(
 
 class ExecuteRequest(BaseModel):
     code: str
+    inputs: Optional[Dict[str, int]] = None
 
 
 class ModelValues(BaseModel):
@@ -295,7 +297,10 @@ def execute(request: ExecuteRequest):
         if not program:
             raise HTTPException(status_code=400, detail="No valid instructions found")
 
-        findings_raw, explored, state_records = explore(program)
+        if request.inputs:
+            findings_raw, explored, state_records = concolic_explore(program, request.inputs)
+        else:
+            findings_raw, explored, state_records = explore(program)
 
         findings = []
         for f in findings_raw:
