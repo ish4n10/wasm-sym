@@ -31,6 +31,7 @@ class State:
         self.memory_pages = z3.BitVecVal(1, 32)
         self.call_stack = []
         self.history = []
+        self.path_conditions = []
 
     def add_constraint(self, c):
         c_str = str(c)
@@ -60,7 +61,8 @@ class State:
             new.solver.add(c)
         new.memory = self.memory
         new.memory_pages = self.memory_pages
-        new.history = list(self.history) 
+        new.history = list(self.history)
+        new.path_conditions = list(self.path_conditions)
         return new
 
     def step(self, program: Program):
@@ -86,6 +88,37 @@ class State:
         })
 
         return status, payload
+
+    def step_concolic(self, program: Program):
+        """Step, following only the feasible branch. Taken branch conditions
+        are recorded in ``path_conditions`` (in the form actually taken)."""
+        status, payload = self.step(program)
+
+        if status == "branch":
+            cond, target = payload
+            self.solver.push()
+            self.solver.add(cond)
+            taken = self.solver.check() == z3.sat
+            self.solver.pop()
+
+            if taken:
+                self.add_constraint(cond)
+                self.path_conditions.append(cond)
+                self.pc = target
+            else:
+                negated = z3.Not(cond)
+                self.add_constraint(negated)
+                self.path_conditions.append(negated)
+            return "continue", None
+
+        return status, payload
+
+    def run_concolic(self, program: Program):
+        while self.pc < len(program):
+            status, _ = self.step_concolic(program)
+            if status == "halt":
+                break
+        return self
 
     def log_branch(self, condition, pc_before):
         self.history.append({
