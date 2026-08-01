@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchOpcodes } from "../api";
+import { Panel } from "./ui/Panel";
 
 export default function OpcodesPane() {
   const { data: opcodes } = useQuery({
@@ -8,36 +9,39 @@ export default function OpcodesPane() {
   });
 
   return (
-    <section className="flex min-h-0 flex-col bg-surface/20">
-      <div className="hairline-b flex h-11 items-center px-4">
-        <span className="text-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">opcode reference</span>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+    <Panel title="Opcode Reference" subtitle="Supported instruction set">
+      <div className="h-full overflow-y-auto p-4 pt-1">
         {!opcodes ? (
           <div className="flex h-full items-center justify-center">
-            <p className="text-mono text-[12px] text-muted-foreground/60">Loading opcodes...</p>
+            <p className="text-[13px] text-muted-foreground">Loading opcodes…</p>
           </div>
         ) : (
-          Object.entries(opcodes).map(([category, ops]) => (
-            <div key={category} className="mb-5">
-              <div className="text-mono mb-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                {category}
+          <div className="space-y-5">
+            {Object.entries(opcodes).map(([category, ops]) => (
+              <div key={category}>
+                <div className="section-label mb-2.5 px-1">{category}</div>
+                <div className="card overflow-hidden">
+                  {Object.entries(ops).map(([op, desc], i) => (
+                    <div
+                      key={op}
+                      className={`flex items-baseline gap-3 px-4 py-2.5 transition-colors hover:bg-white/[0.03] ${
+                        i > 0 ? "border-t border-white/4" : ""
+                      }`}
+                    >
+                      <span className="text-mono w-32 shrink-0 text-[12px] font-semibold text-foreground/90">
+                        {op}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[12px] leading-snug text-muted-foreground">
+                        {desc}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1">
-                {Object.entries(ops).map(([op, desc]) => (
-                  <div
-                    key={op}
-                    className="text-mono flex items-baseline justify-between rounded-md bg-surface px-3 py-2 text-[11px]"
-                  >
-                    <span className="font-medium text-foreground/90">{op}</span>
-                    <span className="ml-3 truncate text-right text-muted-foreground">{desc}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
-    </section>
+    </Panel>
   );
 }

@@ -5,18 +5,18 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
-  --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "SF Pro Display", system-ui, -apple-system, sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
-  --radius-xl: 14px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 18px;
 
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-hover: var(--hover);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
@@ -28,48 +28,88 @@
   --color-found: var(--found);
   --color-pending: var(--pending);
   --color-accent: var(--accent);
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.22);
+  --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.22), 0 18px 44px rgba(0, 0, 0, 0.34);
+  --shadow-panel: 0 1px 1px rgba(0, 0, 0, 0.2), 0 16px 48px rgba(0, 0, 0, 0.3);
+  --shadow-node: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.35);
+  --shadow-node-hover: 0 4px 10px rgba(0, 0, 0, 0.35), 0 20px 48px rgba(0, 0, 0, 0.45);
+  --shadow-node-selected: 0 0 0 3px rgba(75, 141, 255, 0.35), 0 12px 32px rgba(0, 0, 0, 0.4);
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-chip: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 :root {
-  --background: oklch(0.17 0.008 80);
-  --surface:    oklch(0.205 0.009 80);
-  --surface-2:  oklch(0.245 0.010 80);
-  --foreground: oklch(0.965 0.010 85);
-  --muted:      oklch(0.30 0.010 80);
-  --muted-foreground: oklch(0.70 0.012 85);
-  --border:     oklch(0.32 0.010 80);
-  --hairline:   oklch(0.27 0.008 80);
-  --live:    oklch(0.86 0.16 158);
-  --dead:    oklch(0.70 0.19 22);
-  --found:   oklch(0.86 0.16 88);
-  --pending: oklch(0.72 0.05 240);
-  --accent:  oklch(0.86 0.16 88);
+  --background: #161616;
+  --surface: #1b1b1d;
+  --surface-2: #252527;
+  --hover: #303033;
+  --foreground: #f5f5f7;
+  --muted: #707078;
+  --muted-foreground: #a0a0a8;
+  --border: rgba(255, 255, 255, 0.05);
+  --hairline: rgba(255, 255, 255, 0.06);
+  --live: #2ecc71;
+  --dead: #8a8a93;
+  --found: #4b8dff;
+  --pending: #ffb84d;
+  --accent: #4b8dff;
+  --selection: rgba(75, 141, 255, 0.18);
+  --glow: rgba(255, 255, 255, 0.04);
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html, body, #root { height: 100%; }
+  * {
+    border-color: var(--color-border);
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--selection);
   }
 }
 
-@utility bg-grid {
-  background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px);
-  background-size: 28px 28px;
-  background-position: -1px -1px;
+/* ── Scrollbars: thin, rounded, hidden until scrolling ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+  background-clip: content-box;
 }
 
-@utility bg-grid-fine {
+/* ── Canvas grid ── */
+@utility bg-grid {
   background-image:
-    radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 0);
-  background-size: 20px 20px;
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: -1px -1px;
 }
 
 @utility hairline-t { border-top: 1px solid var(--color-hairline); }
@@ -80,46 +120,203 @@
 @utility text-mono { font-family: var(--font-mono); font-feature-settings: "zero", "ss01"; }
 @utility text-serif { font-family: var(--font-serif); }
 
+/* ── Shared component classes ── */
+@layer components {
+  .panel {
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-panel);
+  }
+
+  .card {
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-card);
+  }
+
+  .card-hover {
+    transition:
+      box-shadow 200ms ease,
+      transform 200ms ease,
+      border-color 200ms ease;
+  }
+  .card-hover:hover {
+    box-shadow: var(--shadow-card-hover);
+    border-color: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    background: var(--glow);
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+    box-shadow: var(--shadow-chip);
+  }
+
+  .constraint-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--foreground);
+    background: var(--glow);
+    border: 1px solid var(--border);
+    transition:
+      background 180ms ease,
+      border-color 180ms ease;
+  }
+  .constraint-chip:hover {
+    background: var(--selection);
+    border-color: rgba(75, 141, 255, 0.25);
+  }
+
+  .field-input {
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      background 180ms ease;
+  }
+  .field-input:focus {
+    outline: none;
+    border-color: rgba(75, 141, 255, 0.5);
+    box-shadow: 0 0 0 3px var(--selection);
+  }
+  .field-input:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* ── React Flow theming ── */
 .react-flow {
-  --xy-controls-button-background-color: var(--surface);
+  --xy-controls-button-background-color: var(--surface-2);
   --xy-controls-button-color: var(--muted-foreground);
   --xy-controls-button-border-color: var(--border);
-  --xy-controls-box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.3);
+  --xy-controls-box-shadow: var(--shadow-card);
   --xy-attribution-background-color: transparent;
+  --xy-edge-stroke-default: rgba(255, 255, 255, 0.14);
+  --xy-edge-stroke-width-default: 2;
 }
 .react-flow__controls {
   border: 1px solid var(--border) !important;
-  border-radius: 10px !important;
+  border-radius: 12px !important;
   overflow: hidden;
+  box-shadow: var(--shadow-card) !important;
 }
 .react-flow__controls-button {
-  border-bottom-color: var(--border) !important;
-}
-.react-flow__attribution { display: none !important; }
-.react-flow__controls-button:hover {
+  border-bottom-color: var(--hairline) !important;
   background: var(--surface-2) !important;
+  color: var(--muted-foreground) !important;
+  transition: background 180ms ease, color 180ms ease;
+}
+.react-flow__controls-button:hover {
+  background: var(--hover) !important;
   color: var(--foreground) !important;
 }
-
+.react-flow__controls-button:active {
+  background: var(--selection) !important;
+}
+.react-flow__attribution {
+  display: none !important;
+}
 .react-flow__edge-textbg {
-  rx: 6;
-  ry: 6;
+  rx: 8;
+  ry: 8;
+}
+.react-flow__minimap {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
 }
 
 @keyframes halo-pulse {
-  0%, 100% { opacity: 0.35; transform: scale(1); }
-  50%      { opacity: 0.75; transform: scale(1.08); }
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.06);
+  }
 }
-@utility halo { animation: halo-pulse 2.4s ease-in-out infinite; }
+@utility halo {
+  animation: halo-pulse 2.6s ease-in-out infinite;
+}
 
 @keyframes flow-dash {
-  to { stroke-dashoffset: -24; }
+  to {
+    stroke-dashoffset: -16;
+  }
 }
-@utility flow-anim { stroke-dasharray: 4 6; animation: flow-dash 1.4s linear infinite; }
+@utility flow-anim {
+  stroke-dasharray: 3 7;
+  animation: flow-dash 1.6s linear infinite;
+}
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
+@keyframes node-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
-*::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 999px; }
+
+/* Node entrance */
+@keyframes node-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.react-flow__node {
+  animation: node-enter 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.card-enter {
+  animation: card-enter 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}

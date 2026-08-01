@@ -1,23 +1,35 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { Plus, X } from "lucide-react";
 import { fetchExamples } from "../api";
+import { Panel } from "./ui/Panel";
 
 interface EditorPaneProps {
   code: string;
   setCode: (s: string) => void;
   inputs: Record<string, number>;
   setInputs: (v: Record<string, number>) => void;
-  loading: boolean;
-  onRun: () => void;
+  highlightedLine: number | null;
 }
 
-function Dot({ className = "" }: { className?: string }) {
-  return <span className={`h-1.5 w-1.5 rounded-full ${className}`} />;
-}
+const LINE_HEIGHT = 22;
+const PAD_TOP = 16;
 
-export default function EditorPane({ code, setCode, inputs, setInputs, loading, onRun }: EditorPaneProps) {
+export default function EditorPane({
+  code,
+  setCode,
+  inputs,
+  setInputs,
+  highlightedLine,
+}: EditorPaneProps) {
   const lines = code.split("\n");
   const [scrollTop, setScrollTop] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const { data: examples } = useQuery({
+    queryKey: ["examples"],
+    queryFn: fetchExamples,
+  });
 
   const addInput = () => {
     let i = 0;
@@ -32,28 +44,22 @@ export default function EditorPane({ code, setCode, inputs, setInputs, loading, 
     setInputs(next);
   };
 
-  const { data: examples } = useQuery({
-    queryKey: ["examples"],
-    queryFn: fetchExamples,
-  });
+  const hasHighlight = highlightedLine !== null && highlightedLine < lines.length;
 
   return (
-    <section className="hairline-r flex min-h-0 flex-col bg-surface/40">
-      <div className="hairline-b flex h-11 items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <Dot className="bg-live" />
-          <span className="text-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-            program.wasm
-          </span>
-        </div>
-        {examples && (
+    <Panel
+      title="Source"
+      subtitle="program.wasm"
+      bodyClassName="flex min-h-0 flex-col"
+      actions={
+        examples ? (
           <select
             onChange={(e) => {
               const val = e.target.value;
               if (val && examples[val]) setCode(examples[val]);
             }}
-            className="text-mono rounded border border-border bg-surface px-2 py-0.5 text-[11px] text-foreground outline-none"
             defaultValue=""
+            className="field-input text-mono px-2.5 py-1.5 text-[12px]"
           >
             <option value="" disabled>
               examples
@@ -64,80 +70,103 @@ export default function EditorPane({ code, setCode, inputs, setInputs, loading, 
               </option>
             ))}
           </select>
-        )}
-      </div>
-
+        ) : undefined
+      }
+    >
       <div className="relative min-h-0 flex-1 overflow-hidden">
+        {/* Current-instruction highlight (blue left indicator + soft band) */}
+        <div className="pointer-events-none absolute bottom-0 left-12 right-0 top-0 overflow-hidden">
+          {hasHighlight && (
+            <div style={{ transform: `translate(${-scrollLeft}px, ${PAD_TOP + highlightedLine! * LINE_HEIGHT - scrollTop}px)` }}>
+              <div className="absolute left-0 top-0 w-full" style={{ height: LINE_HEIGHT }}>
+                <div className="absolute bottom-0 left-0 top-0 w-[3px] rounded-r-full bg-[#4b8dff]" />
+                <div className="absolute inset-0 bg-[#4b8dff]/10" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Line numbers */}
         <div
           aria-hidden
-          className="text-mono pointer-events-none absolute left-0 top-0 w-12 select-none py-4 text-right text-[13.5px] leading-[1.7] text-muted-foreground"
+          className="text-mono pointer-events-none absolute left-0 top-0 z-10 w-12 select-none text-right text-[12px] leading-[22px] text-muted-foreground/40"
           style={{ transform: `translateY(${-scrollTop}px)` }}
         >
-          {lines.map((_, i) => (
-            <div key={i} className="pr-3">
-              {String(i).padStart(2, "0")}
-            </div>
-          ))}
+          <div className="py-4">
+            {lines.map((_, i) => (
+              <div
+                key={i}
+                className={
+                  hasHighlight && i === highlightedLine
+                    ? "pr-4 font-medium text-[#4b8dff]"
+                    : "pr-4"
+                }
+              >
+                {String(i).padStart(2, "0")}
+              </div>
+            ))}
+          </div>
         </div>
+
         <textarea
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+          onScroll={(e) => {
+            setScrollTop(e.currentTarget.scrollTop);
+            setScrollLeft(e.currentTarget.scrollLeft);
+          }}
           wrap="off"
           spellCheck={false}
           placeholder="Enter your WAT program..."
-          className="text-mono h-full w-full resize-none overflow-auto bg-transparent py-4 pl-14 pr-4 text-[13.5px] leading-[1.7] text-foreground caret-found outline-none placeholder:text-muted-foreground/50"
+          className="text-mono h-full w-full resize-none overflow-auto bg-transparent py-4 pl-14 pr-5 text-[13.5px] leading-[22px] text-foreground caret-[#4b8dff] outline-none placeholder:text-muted-foreground/40"
           style={{ fontFeatureSettings: '"zero", "ss01", "cv11"' }}
         />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-surface/60 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#1b1b1d] to-transparent" />
       </div>
 
-      <div className="hairline-t p-4">
-        <label className="text-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-          seed inputs
-        </label>
-        <div className="mt-2 space-y-1.5">
+      {/* Seed inputs */}
+      <div className="shrink-0 px-6 pb-6 pt-4">
+        <div className="mb-3 flex items-center justify-between">
+          <span className="section-label">Seed inputs</span>
+          <button
+            onClick={addInput}
+            className="flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+          >
+            <Plus size={12} strokeWidth={2} />
+            Add
+          </button>
+        </div>
+
+        <div className="space-y-2">
           {Object.keys(inputs)
             .sort()
             .map((name) => (
-              <div key={name} className="flex items-center gap-1.5">
-                <span className="text-mono w-16 text-[11px] text-foreground">{name}</span>
+              <div key={name} className="flex items-center gap-2">
+                <span className="text-mono w-16 shrink-0 text-[12px] text-muted-foreground">
+                  {name}
+                </span>
                 <input
                   type="number"
                   value={inputs[name]}
                   onChange={(e) => setInputs({ ...inputs, [name]: Number(e.target.value) })}
-                  className="text-mono w-full rounded border border-border bg-surface px-2 py-1 text-[12px] text-foreground outline-none focus:border-found"
+                  className="field-input text-mono w-full px-2.5 py-1.5 text-[12px]"
                 />
                 <button
                   onClick={() => removeInput(name)}
                   title={`Remove ${name}`}
-                  className="text-mono px-1 text-[13px] text-muted-foreground hover:text-dead"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[8px] text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
                 >
-                  ×
+                  <X size={13} strokeWidth={2} />
                 </button>
               </div>
             ))}
           {Object.keys(inputs).length === 0 && (
-            <p className="text-mono text-[11px] text-muted-foreground">
-              none — inputs fully symbolic
+            <p className="text-[12px] text-muted-foreground">
+              None — inputs are fully symbolic.
             </p>
           )}
         </div>
-        <button
-          onClick={addInput}
-          className="text-mono mt-2 text-[11px] text-muted-foreground hover:text-found"
-        >
-          + add local input
-        </button>
-
-        <button
-          onClick={onRun}
-          disabled={loading || !code.trim()}
-          className="text-mono mt-3 w-full rounded-md bg-found px-3 py-2 text-[12px] font-semibold text-background hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {loading ? "Running..." : "Run trace"}
-        </button>
       </div>
-    </section>
+    </Panel>
   );
 }

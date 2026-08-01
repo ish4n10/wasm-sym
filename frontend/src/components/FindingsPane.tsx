@@ -1,9 +1,14 @@
 import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react";
 import type { ExecuteResult, Finding } from "../api";
+import { Panel } from "./ui/Panel";
+import { Chip } from "./ui/Chip";
+import { cn } from "../lib/utils";
 
 const SUMMARY: Record<string, string> = {
   success:
-    "This path reaches the target state.",
+    "This path reaches the target state — a concrete input that satisfies every constraint.",
   unreachable:
     "This path reaches code that should never execute — a genuine bug.",
   division_by_zero:
@@ -14,6 +19,17 @@ const SUMMARY: Record<string, string> = {
     "This path reads or writes memory outside the allocated buffer.",
 };
 
+function isBug(type: string) {
+  return type !== "success";
+}
+
+function FindingIcon({ type }: { type: string }) {
+  if (type === "success") {
+    return <CheckCircle2 size={16} strokeWidth={1.8} className="text-[#4b8dff]" />;
+  }
+  return <AlertTriangle size={16} strokeWidth={1.8} className="text-[#ffb84d]" />;
+}
+
 interface FindingsPaneProps {
   data: ExecuteResult | null;
 }
@@ -23,8 +39,7 @@ export default function FindingsPane({ data }: FindingsPaneProps) {
 
   const allFindings = useMemo(() => {
     if (!data) return [];
-    const result: { finding: Finding; stateId: string; statePc: number }[] =
-      [];
+    const result: { finding: Finding; stateId: string; statePc: number }[] = [];
     for (const node of data.nodes) {
       for (const f of node.findings) {
         result.push({ finding: f, stateId: node.id, statePc: node.pc });
@@ -39,131 +54,125 @@ export default function FindingsPane({ data }: FindingsPaneProps) {
     });
   }, [data]);
 
-  const toggle = (key: string) =>
-    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggle = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
   if (!data || allFindings.length === 0) {
     return (
-      <section className="flex min-h-0 flex-col bg-surface/20">
-        <div className="hairline-b flex h-11 items-center px-4">
-          <span className="text-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-            findings
-          </span>
+      <Panel title="Findings" subtitle="Detected states">
+        <div className="flex h-full items-center justify-center px-6">
+          <div className="card max-w-[260px] p-7 text-center">
+            <CheckCircle2 size={20} strokeWidth={1.6} className="mx-auto text-muted-foreground" />
+            <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
+              No findings yet — run a trace to surface target states and bugs.
+            </p>
+          </div>
         </div>
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-mono text-[12px] text-muted-foreground/60">
-            No findings yet — run a trace
-          </p>
-        </div>
-      </section>
+      </Panel>
     );
   }
 
   return (
-    <section className="flex min-h-0 flex-col bg-surface/20">
-      <div className="hairline-b flex h-11 items-center justify-between px-4">
-        <span className="text-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-          findings · {allFindings.length}
-        </span>
-      </div>
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
+    <Panel
+      title="Findings"
+      subtitle={`${allFindings.length} unique finding${allFindings.length === 1 ? "" : "s"}`}
+    >
+      <div className="flex h-full flex-col gap-3 overflow-y-auto p-4 pt-1">
         {allFindings.map((r, fi) => {
           const key = `f-${r.stateId}-${fi}`;
           const simp = r.finding.simplified_constraints ?? r.finding.constraints;
           const showRaw = expanded[key] ?? false;
 
           return (
-            <div key={key} className="rounded-lg border border-border bg-surface">
-              {/* ── Tier 1: Plain-language summary ── */}
-              <div className="hairline-b flex items-start gap-2 px-3 py-2.5">
-                <Badge type={r.finding.type} />
-                <p className="text-mono mt-px text-[11px] leading-relaxed text-foreground/80">
-                  {SUMMARY[r.finding.type] ?? r.finding.type}
-                </p>
-              </div>
-
-              {/* ── Tier 2: Key facts ── */}
-              <div className="px-3 py-2">
-                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                  <span>pc {r.statePc}</span>
-                  {r.finding.type === "success" && (
-                    <span className="rounded bg-found/10 px-1.5 py-0.5 text-[9px] text-found">
-                      target state
-                    </span>
-                  )}
+            <motion.div
+              key={key}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.22, delay: fi * 0.03, ease: [0.2, 0.8, 0.2, 1] }}
+              className="card card-hover overflow-hidden"
+            >
+              <div className="p-5 pb-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5">
+                    <FindingIcon type={r.finding.type} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] leading-relaxed text-foreground/90">
+                      {SUMMARY[r.finding.type] ?? r.finding.type}
+                    </p>
+                    <div className="mt-2.5 flex items-center gap-2">
+                      <Chip tone={isBug(r.finding.type) ? "pending" : "accent"}>{r.finding.type}</Chip>
+                      <Chip>pc {r.statePc}</Chip>
+                    </div>
+                  </div>
                 </div>
+
                 {r.finding.model && Object.keys(r.finding.model).length > 0 && (
-                  <div className="mt-2 rounded border border-border/60 bg-background/40 px-2.5 py-2">
-                    <div className="text-mono mb-1 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+                  <div className="mt-4 overflow-hidden rounded-xl bg-black/25">
+                    <div className="px-3.5 pb-1 pt-2.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                       Triggering input
                     </div>
                     {Object.entries(r.finding.model).map(([name, value]) => (
                       <div
                         key={name}
-                        className="flex items-center justify-between py-0.5 text-[11px]"
+                        className="flex items-center justify-between px-3.5 py-1.5 text-[12px]"
                       >
-                        <span className="text-mono text-muted-foreground">
-                          {name}
-                        </span>
-                        <span className="text-mono font-medium text-live">
-                          {value}
-                        </span>
+                        <span className="text-mono text-muted-foreground">{name}</span>
+                        <span className="text-mono font-semibold text-[#2ecc71]">{value}</span>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* ── Tier 3: Collapsed constraints ── */}
               {simp.length > 0 && (
-                <div className="hairline-t">
+                <div className="border-t border-white/4">
                   <button
                     onClick={() => toggle(key)}
-                    className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex w-full items-center justify-between px-5 py-3 text-left transition-colors hover:bg-white/[0.03]"
                   >
-                    <span className="text-mono">
-                      {showRaw ? "▾" : "▸"} Show {simp.length} path constraint
-                      {simp.length !== 1 ? "s" : ""}
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      {simp.length} path constraint{simp.length !== 1 ? "s" : ""}
                     </span>
+                    <ChevronDown
+                      size={14}
+                      strokeWidth={1.8}
+                      className={cn(
+                        "text-muted-foreground transition-transform duration-200",
+                        showRaw && "rotate-180",
+                      )}
+                    />
                   </button>
-                  {showRaw && (
-                    <div className="space-y-0.5 px-3 pb-2.5">
-                      {simp.map((c, ci) => (
-                        <div
-                          key={ci}
-                          className="text-mono rounded bg-background/20 px-2 py-1 text-[10px] leading-relaxed text-foreground/70"
-                        >
-                          {c}
+                  <AnimatePresence initial={false}>
+                    {showRaw && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-1.5 px-5 pb-4">
+                          {simp.map((c, ci) => (
+                            <div
+                              key={ci}
+                              className="constraint-chip"
+                            >
+                              <span className="shrink-0 text-muted-foreground/70">
+                                {String(ci + 1).padStart(2, "0")}
+                              </span>
+                              <span className="break-all">{c}</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
-            </div>
+            </motion.div>
           );
         })}
       </div>
-    </section>
-  );
-}
-
-function Badge({ type }: { type: string }) {
-  let cls = "bg-foreground/10 text-foreground/70";
-  if (type === "success") cls = "bg-found/15 text-found";
-  else if (
-    type === "unreachable" ||
-    type === "division_by_zero" ||
-    type === "remainder_trap" ||
-    type === "out_of_bounds_access"
-  )
-    cls = "bg-[#b91c1c]/15 text-[#ef4444]";
-
-  return (
-    <span
-      className={`text-mono inline-flex shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${cls}`}
-    >
-      {type}
-    </span>
+    </Panel>
   );
 }
