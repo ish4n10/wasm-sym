@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { fetchExamples } from "../api";
 
 interface EditorPaneProps {
@@ -16,6 +17,7 @@ function Dot({ className = "" }: { className?: string }) {
 
 export default function EditorPane({ code, setCode, inputs, setInputs, loading, onRun }: EditorPaneProps) {
   const lines = code.split("\n");
+  const [scrollTop, setScrollTop] = useState(0);
 
   const addInput = () => {
     let i = 0;
@@ -68,7 +70,8 @@ export default function EditorPane({ code, setCode, inputs, setInputs, loading, 
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <div
           aria-hidden
-          className="text-mono pointer-events-none absolute inset-y-0 left-0 w-12 select-none py-4 text-right text-[12px] leading-[1.7] text-muted-foreground"
+          className="text-mono pointer-events-none absolute left-0 top-0 w-12 select-none py-4 text-right text-[13.5px] leading-[1.7] text-muted-foreground"
+          style={{ transform: `translateY(${-scrollTop}px)` }}
         >
           {lines.map((_, i) => (
             <div key={i} className="pr-3">
@@ -79,9 +82,11 @@ export default function EditorPane({ code, setCode, inputs, setInputs, loading, 
         <textarea
           value={code}
           onChange={(e) => setCode(e.target.value)}
+          onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+          wrap="off"
           spellCheck={false}
           placeholder="Enter your WAT program..."
-          className="text-mono h-full w-full resize-none bg-transparent py-4 pl-14 pr-4 text-[13.5px] leading-[1.7] text-foreground caret-found outline-none placeholder:text-muted-foreground/50"
+          className="text-mono h-full w-full resize-none overflow-auto bg-transparent py-4 pl-14 pr-4 text-[13.5px] leading-[1.7] text-foreground caret-found outline-none placeholder:text-muted-foreground/50"
           style={{ fontFeatureSettings: '"zero", "ss01", "cv11"' }}
         />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-surface/60 to-transparent" />
