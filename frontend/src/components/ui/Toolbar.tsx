@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Play, Loader2 } from "lucide-react";
 import { Button } from "./Button";
-import { cn } from "../../lib/utils";
+import { cn } from "../../utils";
 import logo from "../../assets/image.png";
 
 export interface ToolbarTab {

@@ -68,7 +68,7 @@ Thumbs.db
 frontend/dist/
 frontend/.vite/
 frontend/.tmp/
-
+!frontend/lib/utils.ts
 # Python cache
 backend/**/__pycache__/
 *.pyc

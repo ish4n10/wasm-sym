@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn } from "../../utils";
 
 interface InspectorSectionProps {
   title: ReactNode;

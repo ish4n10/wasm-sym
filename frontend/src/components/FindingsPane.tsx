@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react";
 import type { ExecuteResult, Finding } from "../api";
 import { Panel } from "./ui/Panel";
 import { Chip } from "./ui/Chip";
-import { cn } from "../lib/utils";
+import { cn } from "../utils";
 
 const SUMMARY: Record<string, string> = {
   success:
