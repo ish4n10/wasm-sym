@@ -79,7 +79,7 @@ export default function InspectorPane({ node, findings, constraints }: Inspector
             </div>
             <div className="min-w-0">
               <div className="text-[11px] text-muted-foreground">instruction</div>
-              <div className="text-mono mt-1 truncate text-[13px] font-medium text-foreground">
+              <div className="text-mono mt-1 truncate text-[13px] font-medium text-foreground" title={node.label}>
                 {node.label}
               </div>
             </div>
@@ -113,12 +113,22 @@ export default function InspectorPane({ node, findings, constraints }: Inspector
                         {Object.entries(f.model).map(([name, value], i) => (
                           <div
                             key={name}
-                            className={`flex items-center justify-between px-3.5 py-2 text-[12px] ${
+                            className={`flex items-center justify-between gap-3 px-3.5 py-2 text-[12px] ${
                               i > 0 ? "border-t border-white/4" : ""
                             }`}
                           >
-                            <span className="text-mono text-muted-foreground">{name}</span>
-                            <span className="text-mono font-semibold text-[#2ecc71]">{value}</span>
+                            <span
+                              className="text-mono min-w-0 truncate text-muted-foreground"
+                              title={name}
+                            >
+                              {name}
+                            </span>
+                            <span
+                              className="text-mono min-w-0 truncate text-right font-semibold text-[#2ecc71]"
+                              title={value}
+                            >
+                              {value}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -138,7 +148,7 @@ export default function InspectorPane({ node, findings, constraints }: Inspector
           </InspectorSection>
         ) : (
           <InspectorSection title="Path Summary">
-            <div className="text-mono rounded-xl bg-black/25 px-3.5 py-2.5 text-[12px] text-foreground/80">
+            <div className="text-mono break-words rounded-xl bg-black/25 px-3.5 py-2.5 text-[12px] text-foreground/80">
               {node.label}
             </div>
           </InspectorSection>

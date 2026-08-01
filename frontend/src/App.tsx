@@ -108,7 +108,7 @@ export default function App() {
       />
 
       <main className="min-h-0 flex-1 p-4">
-        <div className="grid h-full min-h-0 grid-cols-[minmax(270px,20%)_minmax(0,1fr)_minmax(260px,20%)] gap-4">
+        <div className="grid h-full min-h-0 grid-cols-[minmax(270px,20%)_minmax(0,1fr)_minmax(260px,20%)] grid-rows-[minmax(0,1fr)] gap-4">
           <EditorPane {...editorProps} />
           {activeTab === "explore" ? (
             <GraphPane

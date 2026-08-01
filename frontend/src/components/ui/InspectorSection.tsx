@@ -46,7 +46,7 @@ export function InspectorSection({
             transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-5">{children}</div>
+            <div className="max-h-[45dvh] overflow-y-auto px-5 pb-5">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>

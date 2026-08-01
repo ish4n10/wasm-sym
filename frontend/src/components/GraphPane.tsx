@@ -3,8 +3,10 @@ import { motion } from "framer-motion";
 import type { Node, Edge, NodeProps, BackgroundVariant } from "@xyflow/react";
 import {
   ReactFlow,
+  ReactFlowProvider,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   Handle,
   Position,
   Controls,
@@ -16,39 +18,34 @@ import dagre from "dagre";
 import { Panel } from "./ui/Panel";
 import type { GraphNode as AppGraphNode, GraphEdge as AppGraphEdge } from "../api";
 
-const NODE_W = 208;
+const NODE_W = 236;
 const NODE_H = 104;
 
-function truncateLabel(text: string, maxLen = 30): string {
+function truncateLabel(text: string, maxLen = 24): string {
   if (text.length <= maxLen) return text;
   return text.slice(0, maxLen - 1) + "…";
 }
 
-function colorFor(s: AppGraphNode["state"]) {
+function badgeFor(s: AppGraphNode["state"]) {
   switch (s) {
-    case "live": return "var(--color-live)";
-    case "dead": return "var(--color-dead)";
-    case "found": return "var(--color-found)";
-    case "pending": return "var(--color-pending)";
+    case "found":
+      return { label: "SAT", color: "#2ecc71" };
+    case "live":
+      return { label: "ALIVE", color: "#4b8dff" };
+    case "dead":
+      return { label: "DEAD", color: "#9a9aa3" };
+    case "pending":
+      return { label: "PENDING", color: "#ffb84d" };
   }
 }
 
-function badgeText(s: AppGraphNode["state"]) {
-  switch (s) {
-    case "live": return "alive";
-    case "dead": return "dead";
-    case "found": return "sat";
-    case "pending": return "pending";
-  }
-}
-
-type RFNode = Node<AppGraphNode>;
+type RFNode = Node<AppGraphNode & { isSelected?: boolean; isActivePath?: boolean }>;
 type RFEdge = Edge<AppGraphEdge>;
 
 function buildLayout(nodes: AppGraphNode[], edges: AppGraphEdge[]): { rfnodes: RFNode[]; rfedges: RFEdge[] } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "TB", nodesep: 210, ranksep: 190, marginx: 60, marginy: 60 });
+  g.setGraph({ rankdir: "TB", nodesep: 340, ranksep: 260, marginx: 40, marginy: 40 });
 
   for (const n of nodes) {
     g.setNode(n.id, { width: NODE_W, height: NODE_H });
@@ -63,8 +60,14 @@ function buildLayout(nodes: AppGraphNode[], edges: AppGraphEdge[]): { rfnodes: R
     return {
       id: n.id,
       type: "execNode",
+      width: NODE_W,
+      height: NODE_H,
       position: { x: pos.x - NODE_W / 2, y: pos.y - NODE_H / 2 },
-      data: n,
+      handles: [
+        { id: "source", type: "source", position: Position.Bottom, x: 0, y: 0 },
+        { id: "target", type: "target", position: Position.Top, x: 0, y: 0 },
+      ],
+      data: { ...n, isSelected: false, isActivePath: false },
     };
   });
 
@@ -92,14 +95,14 @@ function buildLayout(nodes: AppGraphNode[], edges: AppGraphEdge[]): { rfnodes: R
       labelBgPadding: [5, 8],
       labelBgBorderRadius: 8,
       style: {
-        stroke: pointsToFound ? "url(#edge-found)" : "url(#edge-plain)",
-        strokeWidth: 2,
+        stroke: pointsToFound ? "var(--color-found)" : "rgba(255,255,255,0.5)",
+        strokeWidth: 2.5,
         strokeDasharray: pointsToFound ? "3 7" : undefined,
       },
       className: pointsToFound ? "flow-anim" : undefined,
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: pointsToFound ? "var(--color-found)" : "rgba(255,255,255,0.2)",
+        color: pointsToFound ? "var(--color-found)" : "rgba(255,255,255,0.55)",
       },
     };
   });
@@ -141,114 +144,108 @@ function computeActiveSet(clickedId: string | null, rfedges: RFEdge[]): Set<stri
 }
 
 interface ExecNodeProps extends NodeProps<Node<AppGraphNode>> {
-  data: AppGraphNode & { isSelected?: boolean };
+  data: AppGraphNode & { isSelected?: boolean; isActivePath?: boolean };
 }
 
 function ExecNode({ data }: ExecNodeProps) {
   const isSelected = data.isSelected ?? false;
-  const stateColor = colorFor(data.state);
+  const isActivePath = data.isActivePath ?? false;
+  const badge = badgeFor(data.state);
   const isFound = data.state === "found";
-  const isDead = data.state === "dead";
-  const labelText = data.label.length > 26 ? data.label.slice(0, 24) + "…" : data.label;
+  const labelText = truncateLabel(data.label);
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
-      transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
-      className="relative flex flex-col justify-between overflow-hidden text-left"
+      whileHover={{
+        scale: 1.03,
+        y: -2,
+        borderColor: "rgba(255,255,255,0.2)",
+        boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
+      }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      className="relative flex cursor-pointer flex-col justify-between select-none group"
       style={{
         width: NODE_W,
         height: NODE_H,
         borderRadius: 16,
-        padding: "14px 16px 12px",
-        background: "linear-gradient(180deg, #2b2b2f 0%, #222225 100%)",
+        padding: "16px",
+        background: "#2a2a2d",
         border: isSelected
-          ? "1px solid rgba(75,141,255,0.6)"
-          : isFound
-            ? "1px solid rgba(75,141,255,0.35)"
-            : "1px solid rgba(255,255,255,0.07)",
+          ? "1.5px solid #4b8dff"
+          : isActivePath
+            ? "1px solid rgba(75,141,255,0.45)"
+            : "1px solid rgba(255,255,255,0.08)",
         boxShadow: isSelected
-          ? "var(--shadow-node-selected)"
-          : isFound
-            ? "0 0 0 1px rgba(75,141,255,0.15), var(--shadow-node)"
-            : "var(--shadow-node)",
+          ? "0 0 0 3px rgba(75,141,255,0.3), 0 12px 32px rgba(0,0,0,0.4)"
+          : isActivePath
+            ? "0 0 0 1px rgba(75,141,255,0.2), 0 8px 24px rgba(0,0,0,0.35)"
+            : "0 8px 24px rgba(0,0,0,0.35)",
+        zIndex: isSelected ? 1000 : 10,
       }}
     >
       <Handle
         type="target"
         position={Position.Top}
         style={{
-          background: stateColor,
-          border: "2px solid var(--color-surface-2)",
+          background: "#fff",
+          border: "2px solid #2a2a2d",
           width: 10,
           height: 10,
           top: -5,
-          boxShadow: `0 0 0 3px rgba(0,0,0,0.25)`,
         }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
         style={{
-          background: stateColor,
-          border: "2px solid var(--color-surface-2)",
+          background: "#fff",
+          border: "2px solid #2a2a2d",
           width: 10,
           height: 10,
           bottom: -5,
-          boxShadow: `0 0 0 3px rgba(0,0,0,0.25)`,
         }}
       />
 
-      <div className="flex items-center gap-2.5">
+      <div className="flex min-w-0 items-center gap-2.5">
         <span
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-          style={{
-            background: `color-mix(in srgb, ${stateColor} 16%, transparent)`,
-            boxShadow: `inset 0 0 0 1.5px ${stateColor}`,
-          }}
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{ backgroundColor: badge.color, boxShadow: `0 0 8px ${badge.color}66` }}
+        />
+        <span
+          className="truncate text-[16px] font-semibold leading-none tracking-[-0.01em]"
+          style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}
         >
-          <span
-            className="h-1.5 w-1.5 rounded-full"
-            style={{ backgroundColor: stateColor }}
-          />
-        </span>
-        <span className="text-mono text-[13px] font-semibold leading-tight text-foreground truncate">
           {labelText}
         </span>
       </div>
 
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-mono text-[11px] text-muted-foreground">pc {data.pc}</span>
+      <div className="flex items-end justify-between gap-2">
+        <span className="text-[13px] font-medium leading-none text-muted-foreground">
+          PC <span className="text-foreground/90">{data.pc}</span>
+        </span>
         <span
-          className="text-mono rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]"
+          className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] transition-colors duration-150 group-hover:brightness-125"
           style={{
-            color: stateColor,
-            backgroundColor: `color-mix(in srgb, ${stateColor} 14%, transparent)`,
+            color: badge.color,
+            backgroundColor: `color-mix(in srgb, ${badge.color} 16%, transparent)`,
+            border: `1px solid ${colorMixAlpha(badge.color)}`,
           }}
         >
-          {badgeText(data.state)}
+          {badge.label}
         </span>
       </div>
 
       {isFound && data.findings[0] && (
-        <div
-          className="absolute bottom-1 left-4 right-4 truncate text-[10px] leading-tight"
-          style={{ color: "var(--color-found)" }}
-        >
+        <span className="pointer-events-none absolute -top-2 right-4 rounded-full bg-[#2ecc71]/90 px-2 py-0.5 text-[10px] font-semibold text-black">
           {data.findings[0].type}
-        </div>
+        </span>
       )}
-
-      <div
-        className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full"
-        style={{
-          backgroundColor: isDead ? "transparent" : stateColor,
-          opacity: isDead ? 0 : 0.9,
-          boxShadow: isFound ? `0 0 8px ${stateColor}` : undefined,
-        }}
-      />
     </motion.div>
   );
+}
+
+function colorMixAlpha(color: string) {
+  return `color-mix(in srgb, ${color} 30%, transparent)`;
 }
 
 const nodeTypes = { execNode: ExecNode } as const;
@@ -260,8 +257,17 @@ interface GraphPaneProps {
   setSelected: (id: string | null) => void;
 }
 
-export default function GraphPane({ nodes, edges, selected, setSelected }: GraphPaneProps) {
+export default function GraphPane(props: GraphPaneProps) {
+  return (
+    <ReactFlowProvider>
+      <GraphPaneInner {...props} />
+    </ReactFlowProvider>
+  );
+}
+
+function GraphPaneInner({ nodes, edges, selected, setSelected }: GraphPaneProps) {
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const reactFlow = useReactFlow();
 
   const { rfnodes: layoutedNodes, rfedges: layoutedEdges } = useMemo(
     () => buildLayout(nodes, edges),
@@ -278,31 +284,41 @@ export default function GraphPane({ nodes, edges, selected, setSelected }: Graph
     return computeActiveSet(highlightedId, layoutedEdges);
   }, [highlightedId, layoutedEdges, layoutedNodes]);
 
+  const isHighlighting = highlightedId !== null && activeIds.size > 0;
+
   useEffect(() => {
-    if (activeIds.size === 0) {
-      setFlowNodes(layoutedNodes);
-      setFlowEdges(layoutedEdges);
-    } else {
-      setFlowNodes(
-        layoutedNodes.map((n) => ({
-          ...n,
-          style: activeIds.has(n.id)
-            ? { opacity: 1 }
-            : { opacity: 0.28, pointerEvents: "none" as const },
-        })),
-      );
-      setFlowEdges(
-        layoutedEdges.map((e) => {
-          const dim = !activeIds.has(e.source) || !activeIds.has(e.target);
-          return {
-            ...e,
-            style: dim ? { ...e.style, opacity: 0.2 } : e.style,
-            labelStyle: dim ? { ...e.labelStyle, opacity: 0.2 } : e.labelStyle,
-          };
-        }),
-      );
+    setFlowNodes(layoutedNodes);
+    setFlowEdges(layoutedEdges);
+  }, [layoutedNodes, layoutedEdges, setFlowNodes, setFlowEdges]);
+
+  // Refit and center after every trace so the whole graph fills the canvas
+  // with comfortable margins while keeping node content readable.
+  useEffect(() => {
+    if (layoutedNodes.length === 0) return;
+    const timer = setTimeout(() => {
+      reactFlow.fitView({
+        padding: 0.18,
+        duration: 350,
+        maxZoom: 1.1,
+      });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [layoutedNodes, layoutedEdges, reactFlow]);
+
+  // Smoothly center the camera on the selected node.
+  useEffect(() => {
+    if (selected && layoutedNodes.some((n) => n.id === selected)) {
+      const timer = setTimeout(() => {
+        reactFlow.fitView({
+          nodes: [{ id: selected }],
+          padding: 0.6,
+          duration: 400,
+          maxZoom: 1.3,
+        });
+      }, 60);
+      return () => clearTimeout(timer);
     }
-  }, [layoutedNodes, layoutedEdges, activeIds, setFlowNodes, setFlowEdges]);
+  }, [selected, reactFlow, layoutedNodes]);
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: RFNode) => {
@@ -317,12 +333,50 @@ export default function GraphPane({ nodes, edges, selected, setSelected }: Graph
     setSelected(null);
   }, [setSelected]);
 
+  const displayNodes: RFNode[] = flowNodes.map((n) => {
+    const id = n.id;
+    const active = isHighlighting && activeIds.has(id);
+    return {
+      ...n,
+      zIndex: id === selected ? 1000 : 10,
+      data: {
+        ...(n.data as AppGraphNode),
+        isSelected: id === selected,
+        isActivePath: active,
+      },
+    };
+  });
+
+  const displayEdges: RFEdge[] = flowEdges.map((e) => {
+    if (!isHighlighting) return e;
+    const active = activeIds.has(e.source) && activeIds.has(e.target);
+    return {
+      ...e,
+      style: {
+        ...e.style,
+        stroke: active ? "var(--color-found)" : "rgba(255,255,255,0.5)",
+        strokeWidth: 2.5,
+        opacity: 1,
+        strokeDasharray: active ? "3 7" : undefined,
+      },
+      className: active ? "flow-anim" : undefined,
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: active ? "var(--color-found)" : "rgba(255,255,255,0.55)",
+      },
+    };
+  });
+
   const foundCount = nodes.filter((n) => n.state === "found").length;
 
   return (
     <Panel
       title="Execution graph"
-      subtitle={nodes.length > 0 ? `${nodes.length} states · ${foundCount} finding${foundCount === 1 ? "" : "s"}` : undefined}
+      subtitle={
+        nodes.length > 0
+          ? `${nodes.length} states · ${foundCount} finding${foundCount === 1 ? "" : "s"}`
+          : undefined
+      }
       bodyClassName="relative min-h-0"
       className="bg-[#1b1b1d]"
     >
@@ -338,40 +392,24 @@ export default function GraphPane({ nodes, edges, selected, setSelected }: Graph
         </div>
       ) : (
         <ReactFlow
-          nodes={flowNodes.map((n) => ({
-            ...n,
-            data: { ...(n.data as AppGraphNode), isSelected: (n.data as AppGraphNode).id === selected },
-          }))}
-          edges={flowEdges}
+          nodes={displayNodes}
+          edges={displayEdges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
           fitView
-          fitViewOptions={{ padding: 0.35 }}
+          fitViewOptions={{ padding: 0.18, maxZoom: 1.1 }}
           minZoom={0.2}
-          maxZoom={2}
+          maxZoom={2.5}
           proOptions={{ hideAttribution: true }}
         >
-          <svg width={0} height={0} className="absolute" aria-hidden>
-            <defs>
-              <linearGradient id="edge-found" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="rgba(75,141,255,0.15)" />
-                <stop offset="100%" stopColor="rgba(75,141,255,0.55)" />
-              </linearGradient>
-              <linearGradient id="edge-plain" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="rgba(255,255,255,0.04)" />
-                <stop offset="100%" stopColor="rgba(255,255,255,0.18)" />
-              </linearGradient>
-            </defs>
-          </svg>
           <Background
             variant={"dots" as BackgroundVariant}
             gap={26}
-            size={1.5}
-            color="rgba(255,255,255,0.07)"
-            style={{ opacity: 1 }}
+            size={1.6}
+            color="rgba(255,255,255,0.08)"
           />
           <Controls showInteractive={false} />
         </ReactFlow>
