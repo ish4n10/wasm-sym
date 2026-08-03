@@ -61,7 +61,7 @@ export default function InspectorPane({ node, findings, constraints }: Inspector
         </span>
       }
     >
-      <div className="flex h-full flex-col gap-3 overflow-y-auto p-4 pt-1">
+      <div className="flex h-full flex-col gap-2 overflow-y-auto p-3 pt-1">
         <InspectorSection
           title="Current State"
           badge={
@@ -70,16 +70,16 @@ export default function InspectorPane({ node, findings, constraints }: Inspector
             </Chip>
           }
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div>
               <div className="text-mono text-[11px] text-muted-foreground">pc</div>
-              <div className="text-mono mt-1 text-[16px] font-semibold text-foreground">
+              <div className="text-mono mt-0.5 text-[16px] font-semibold text-foreground">
                 {node.pc}
               </div>
             </div>
             <div className="min-w-0">
               <div className="text-[11px] text-muted-foreground">instruction</div>
-              <div className="text-mono mt-1 truncate text-[13px] font-medium text-foreground" title={node.label}>
+              <div className="text-mono mt-0.5 truncate text-[13px] font-medium text-foreground" title={node.label}>
                 {node.label}
               </div>
             </div>
@@ -95,9 +95,9 @@ export default function InspectorPane({ node, findings, constraints }: Inspector
               </Chip>
             }
           >
-            <div className="space-y-4">
+            <div className="space-y-3">
               {findings.map((f, fi) => (
-                <div key={fi} className="space-y-3">
+                <div key={fi} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Chip tone={findingTone(f.type)}>{f.type}</Chip>
                     <Chip>@ pc {f.pc}</Chip>
@@ -105,7 +105,7 @@ export default function InspectorPane({ node, findings, constraints }: Inspector
 
                   {f.model && Object.keys(f.model).length > 0 && (
                     <div>
-                      <div className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
                         <TerminalSquare size={12} strokeWidth={1.8} />
                         Registers
                       </div>
@@ -113,7 +113,7 @@ export default function InspectorPane({ node, findings, constraints }: Inspector
                         {Object.entries(f.model).map(([name, value], i) => (
                           <div
                             key={name}
-                            className={`flex items-center justify-between gap-3 px-3.5 py-2 text-[12px] ${
+                            className={`flex items-center justify-between gap-3 px-3 py-1.5 text-[12px] ${
                               i > 0 ? "border-t border-white/4" : ""
                             }`}
                           >
@@ -136,7 +136,7 @@ export default function InspectorPane({ node, findings, constraints }: Inspector
                   )}
 
                   {f.simplified_constraints && f.simplified_constraints.length > 0 && (
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       {f.simplified_constraints.map((c, ci) => (
                         <ConstraintChip key={ci} label={c} />
                       ))}
@@ -163,7 +163,7 @@ export default function InspectorPane({ node, findings, constraints }: Inspector
           }
         >
           {constraints.length > 0 ? (
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {constraints.map((c, i) => (
                 <ConstraintChip key={i} label={c} index={i} />
               ))}

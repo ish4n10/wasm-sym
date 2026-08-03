@@ -22,7 +22,7 @@ export function InspectorSection({
     <div className="card overflow-hidden">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors duration-200 hover:bg-white/[0.03]"
+        className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors duration-200 hover:bg-white/[0.03]"
       >
         <span className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
           {title}
@@ -46,7 +46,7 @@ export function InspectorSection({
             transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="max-h-[45dvh] overflow-y-auto px-5 pb-5">{children}</div>
+            <div className="max-h-[45dvh] overflow-y-auto px-4 pb-3.5">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>

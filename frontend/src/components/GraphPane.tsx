@@ -20,6 +20,7 @@ import type { GraphNode as AppGraphNode, GraphEdge as AppGraphEdge } from "../ap
 
 const NODE_W = 236;
 const NODE_H = 104;
+const HANDLE_SIZE = 10;
 
 function truncateLabel(text: string, maxLen = 24): string {
   if (text.length <= maxLen) return text;
@@ -64,8 +65,24 @@ function buildLayout(nodes: AppGraphNode[], edges: AppGraphEdge[]): { rfnodes: R
       height: NODE_H,
       position: { x: pos.x - NODE_W / 2, y: pos.y - NODE_H / 2 },
       handles: [
-        { id: "source", type: "source", position: Position.Bottom, x: 0, y: 0 },
-        { id: "target", type: "target", position: Position.Top, x: 0, y: 0 },
+        {
+          id: "source",
+          type: "source",
+          position: Position.Bottom,
+          x: NODE_W / 2 - HANDLE_SIZE / 2,
+          y: NODE_H - HANDLE_SIZE / 2,
+          width: HANDLE_SIZE,
+          height: HANDLE_SIZE,
+        },
+        {
+          id: "target",
+          type: "target",
+          position: Position.Top,
+          x: NODE_W / 2 - HANDLE_SIZE / 2,
+          y: -HANDLE_SIZE / 2,
+          width: HANDLE_SIZE,
+          height: HANDLE_SIZE,
+        },
       ],
       data: { ...n, isSelected: false, isActivePath: false },
     };
